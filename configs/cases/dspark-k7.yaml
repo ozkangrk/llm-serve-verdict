@@ -1,0 +1,48 @@
+schema_version: "serving-verdict.case.v0.1"
+id: qwen38-dspark-k7
+source_root: /home/ozkangu/Desktop/Qwen3.8-27B-DGX-Spark-RTX-6000
+baseline:
+  artifact: benchmarks/results/dspark_ab_incumbent_mtp2.json
+  sha256: "50ce270b09d951f6b2f1e4881c8e41f9bee5f938e4813e343dfda5b9cbca866c"
+candidate:
+  artifact: benchmarks/results/dspark_ab_candidate_k7.json
+  sha256: "c09dba16341b6c9ac4f40f1f9258ad5e028cc99b4df87bda18e879485dc4e69c"
+policy:
+  primary_metric: decode_tokens_per_s
+  workload: edit_cold
+  min_relative_improvement: 0.15
+  max_ttft_regression: 0.10
+  required_gates:
+    - request_success
+    - arithmetic
+    - tool_call
+    - process_stability
+    - rollback
+supplemental_evidence:
+  - id: arithmetic
+    kind: operator_attested
+    status: pass
+    source: benchmarks/results/DSPARK_REPORT.md
+    sha256: "3708532cc1248e740046341466cf90d9828989e9ac8aa29f7da9801e60d4d219"
+  - id: tool_call
+    kind: operator_attested
+    status: pass
+    source: benchmarks/results/DSPARK_REPORT.md
+    sha256: "3708532cc1248e740046341466cf90d9828989e9ac8aa29f7da9801e60d4d219"
+  - id: process_stability
+    kind: operator_attested
+    status: pass
+    source: benchmarks/results/DSPARK_REPORT.md
+    sha256: "3708532cc1248e740046341466cf90d9828989e9ac8aa29f7da9801e60d4d219"
+  - id: rollback
+    kind: operator_attested
+    status: pass
+    source: benchmarks/results/DSPARK_REPORT.md
+    sha256: "3708532cc1248e740046341466cf90d9828989e9ac8aa29f7da9801e60d4d219"
+claim_boundary: >
+  Bound to the exact frozen DGX Spark A/B artifacts (MTP2 incumbent vs
+  external DSpark k=7 drafter, same checkpoint/image, thinking disabled,
+  T=0). Decodes the edit_cold workload; all five required gates must hold,
+  including operator-attested correctness and stability evidence from the
+  bound DSPARK_REPORT.md. No claim beyond the measured workloads and the
+  bound profiles.

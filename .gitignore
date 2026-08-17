@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.cache/
+
+# Build artifacts (distributions are produced, not committed)
+dist/
+build/
+
+# Local virtualenvs
+.venv/
+
+# Generated verdict bundles (reproduced via `serving-verdict import-case`)
+data/

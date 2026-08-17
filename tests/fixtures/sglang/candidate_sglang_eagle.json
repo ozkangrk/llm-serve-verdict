@@ -1,0 +1,51 @@
+{
+  "schema_version": "qwen38.sglang-vllm-ab.v1",
+  "created_at": "2026-08-16T23:00:00+00:00",
+  "engine": "sglang-mtp",
+  "profile": "fixture-minimized",
+  "base_url": "http://127.0.0.1:30000/v1",
+  "model": "fixture-sglang-eagle",
+  "seed": 20260817,
+  "repeats": 1,
+  "results": {
+    "short_decode_512": {
+      "requests": [
+        {
+          "prompt_tokens": 38,
+          "completion_tokens": 512,
+          "latency_s": 14.4,
+          "ttft_s": 0.219,
+          "decode_tokens_per_s": 36.1,
+          "e2e_output_tokens_per_s": 35.6,
+          "finish_reason": "length"
+        }
+      ],
+      "median_decode_tokens_per_s": 36.1,
+      "median_ttft_s": 0.219,
+      "median_latency_s": 14.4
+    },
+    "concurrency4_short_256": {
+      "groups": [
+        {
+          "wall_s": 10.57,
+          "total_completion_tokens": 2048,
+          "aggregate_output_tokens_per_s": 96.84,
+          "requests": [
+            {
+              "prompt_tokens": 38,
+              "completion_tokens": 512,
+              "latency_s": 10.57,
+              "ttft_s": 0.219,
+              "decode_tokens_per_s": 36.1,
+              "e2e_output_tokens_per_s": 35.6,
+              "finish_reason": "length"
+            }
+          ]
+        }
+      ],
+      "median_aggregate_output_tokens_per_s": 96.84,
+      "median_wall_s": 10.57
+    }
+  },
+  "claim_boundary": "Minimized unit-test fixture, not real measurement."
+}

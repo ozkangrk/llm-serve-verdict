@@ -1,0 +1,30 @@
+schema_version: "serving-verdict.case.v0.1"
+id: fixture-sglang
+source_root: /home/ozkangu/Desktop/Inference-Engineering-Studio/tests/fixtures/sglang
+baseline:
+  artifact: baseline_vllm.json
+  sha256: "93524015d55008a2add396d198d65ee92989c7e2fc26149a59caa6890a475995"
+candidate:
+  artifact: candidate_sglang_eagle.json
+  sha256: "d4edca2c7667008da9995420720fa6247fa67be61b8302cfd8557237162a7065"
+policy:
+  primary_metric: decode_tokens_per_s
+  workload: short_decode_512
+  min_relative_improvement: 0.15
+  max_ttft_regression: 0.10
+  required_gates:
+    - request_success
+    - process_stability
+    - rollback
+supplemental_evidence:
+  - id: process_stability
+    kind: operator_attested
+    status: fail
+    source: REPORT.md
+    sha256: "794cea3da4e8d3dcee9077107a237fb24f664d2d01a19fc92ecec63ca1b4919c"
+  - id: rollback
+    kind: operator_attested
+    status: pass
+    source: REPORT.md
+    sha256: "794cea3da4e8d3dcee9077107a237fb24f664d2d01a19fc92ecec63ca1b4919c"
+claim_boundary: "Minimized unit-test fixture; synthetic throughput win overridden by a failed production process-stability gate."

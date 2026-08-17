@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Serving Verdict</title>
+<link rel="stylesheet" href="/ui.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="dot"></span>Serving Verdict</div>
+  <div class="topbar-sub">evidence-gated serving decisions &middot; read-only &middot; loopback</div>
+</header>
+
+<main>
+  <section id="index-view">
+    <h1>Verdicts</h1>
+    <p class="muted">Bound, tamper-evident decisions from local inference evidence. Verdict first, always as a text label.</p>
+    <div id="verdict-list" class="cards"></div>
+    <div id="index-error" class="error hidden"></div>
+  </section>
+
+  <section id="detail-view" class="hidden">
+    <button id="back-btn" class="back" type="button">&larr; All verdicts</button>
+    <div class="verdict-panel">
+      <div class="verdict-label" id="verdict-label">?</div>
+      <div>
+        <div class="case-id" id="detail-case-id"></div>
+        <div class="reason-codes" id="reason-codes"></div>
+      </div>
+    </div>
+
+    <section class="panel">
+      <h2>Bound evidence (SHA-256)</h2>
+      <table class="kv">
+        <tr><td>Baseline artifact</td><td class="mono" id="baseline-artifact"></td></tr>
+        <tr><td>Baseline hash</td><td class="mono hash" id="baseline-sha"></td></tr>
+        <tr><td>Candidate artifact</td><td class="mono" id="candidate-artifact"></td></tr>
+        <tr><td>Candidate hash</td><td class="mono hash" id="candidate-sha"></td></tr>
+        <tr><td>Bundle digest</td><td class="mono hash" id="bundle-digest"></td></tr>
+        <tr><td>Integrity</td><td id="integrity"></td></tr>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Comparable metrics</h2>
+      <p class="muted">Reported only when metric ID, unit, procedure, workload, concurrency, budget, thinking mode, warm/cold and aggregation all match. No automatic decode/e2e/aggregate conversion.</p>
+      <table id="metrics-table" class="metrics">
+        <thead><tr><th>Metric</th><th>Direction</th><th>Baseline</th><th>Candidate</th><th>&Delta; rel</th><th>Unit</th><th>Aggregation</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="metrics-empty" class="muted hidden">No comparable metrics under the policy workload.</div>
+    </section>
+
+    <section class="panel" data-section="gate-authority">
+      <h2>Gates &amp; authority</h2>
+      <p class="muted">Machine-measured gates come from recognized artifact adapters; operator-attested gates are shown as such and are never relabeled.</p>
+      <table id="gates-table" class="metrics">
+        <thead><tr><th>Gate</th><th>Status</th><th>Authority</th><th>Evidence</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Claim boundary</h2>
+      <p id="claim-boundary" class="claim-boundary"></p>
+    </section>
+  </section>
+</main>
+
+<footer class="footer">Serving Verdict MVP v0.1 &middot; deterministic engine, no LLM opinion &middot; offline UI</footer>
+<script src="/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{
+  "schema_version": "qwen38.dspark-ab.v1",
+  "created_at": "2026-08-17T08:00:00+00:00",
+  "engine": "vllm-dspark-k7",
+  "profile": "fixture-minimized",
+  "base_url": "http://127.0.0.1:8889/v1",
+  "model": "fixture-dspark-k7",
+  "repeats": 1,
+  "results": {
+    "edit_cold": {
+      "requests": [
+        {
+          "prompt_tokens": 2665,
+          "completion_tokens": 1200,
+          "latency_s": 20.2,
+          "ttft_s": 1.272,
+          "decode_tokens_per_s": 63.27,
+          "e2e_output_tokens_per_s": 59.41,
+          "finish_reason": "length",
+          "gpu": {
+            "samples": 1
+          }
+        }
+      ],
+      "median_decode_tokens_per_s": 63.27,
+      "median_e2e_output_tokens_per_s": 59.41,
+      "median_ttft_s": 1.272,
+      "median_latency_s": 20.2
+    },
+    "concurrency3_edit_cold": {
+      "groups": [
+        {
+          "wall_s": 27.1,
+          "total_completion_tokens": 3600,
+          "aggregate_output_tokens_per_s": 132.83,
+          "requests": [
+            {
+              "prompt_tokens": 2665,
+              "completion_tokens": 1200,
+              "latency_s": 27.1,
+              "ttft_s": 5.088,
+              "decode_tokens_per_s": 53.7795,
+              "e2e_output_tokens_per_s": 44.5575,
+              "finish_reason": "length"
+            }
+          ]
+        }
+      ],
+      "median_aggregate_output_tokens_per_s": 132.83,
+      "median_wall_s": 27.1
+    }
+  },
+  "claim_boundary": "Minimized unit-test fixture, not real measurement."
+}

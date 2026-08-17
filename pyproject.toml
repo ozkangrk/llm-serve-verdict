@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "serving-verdict"
+version = "0.1.0"
+description = "Local-first, evidence-driven PROMOTE/REJECT/INCONCLUSIVE decisions for LLM serving changes"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Inference Engineering Studio" }]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "pyyaml>=6.0",
+    "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "types-PyYAML",
+]
+
+[project.scripts]
+serving-verdict = "serving_verdict.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/serving_verdict"]
+
+# NOTE: no force-include for the web/ assets. The wheel builder already
+# includes every file inside the serving_verdict package (including
+# serving_verdict/web/*); forcing the same directory again makes hatchling
+# add serving_verdict/web/__init__.py twice and abort the build.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["serving_verdict"]
+warn_unused_ignores = false
+no_implicit_optional = true
+check_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "quickjs>=1.19.4",
+]

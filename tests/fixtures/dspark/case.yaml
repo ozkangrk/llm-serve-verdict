@@ -1,0 +1,42 @@
+schema_version: "serving-verdict.case.v0.1"
+id: fixture-dspark
+source_root: /home/ozkangu/Desktop/Inference-Engineering-Studio/tests/fixtures/dspark
+baseline:
+  artifact: baseline_mtp2.json
+  sha256: "8273c3b5231896733f6d3077364d98f476a4a924d605c8b084e1198bad899190"
+candidate:
+  artifact: candidate_k7.json
+  sha256: "f6ee0b79ba55b3d94fbe4ba9a86e514cbed876166658963288c6392e01bd299b"
+policy:
+  primary_metric: decode_tokens_per_s
+  workload: edit_cold
+  min_relative_improvement: 0.15
+  max_ttft_regression: 0.10
+  required_gates:
+    - request_success
+    - arithmetic
+    - tool_call
+    - process_stability
+    - rollback
+supplemental_evidence:
+  - id: arithmetic
+    kind: operator_attested
+    status: pass
+    source: DSPARK_REPORT.md
+    sha256: "4241d76e0ba1a589d2c6aa3b7ff90d83b96af2a58bb8aac2e3deb20b737ac21a"
+  - id: tool_call
+    kind: operator_attested
+    status: pass
+    source: DSPARK_REPORT.md
+    sha256: "4241d76e0ba1a589d2c6aa3b7ff90d83b96af2a58bb8aac2e3deb20b737ac21a"
+  - id: process_stability
+    kind: operator_attested
+    status: pass
+    source: DSPARK_REPORT.md
+    sha256: "4241d76e0ba1a589d2c6aa3b7ff90d83b96af2a58bb8aac2e3deb20b737ac21a"
+  - id: rollback
+    kind: operator_attested
+    status: pass
+    source: DSPARK_REPORT.md
+    sha256: "4241d76e0ba1a589d2c6aa3b7ff90d83b96af2a58bb8aac2e3deb20b737ac21a"
+claim_boundary: "Minimized unit-test fixture; deterministic decision check only, not a real measurement."

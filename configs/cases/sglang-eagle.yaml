@@ -1,0 +1,37 @@
+schema_version: "serving-verdict.case.v0.1"
+id: qwen38-sglang-eagle
+source_root: /home/ozkangu/Desktop/Qwen3.8-27B-DGX-Spark-RTX-6000
+baseline:
+  artifact: benchmarks/results/vllm_incumbent.json
+  sha256: "5623961cb0be815476f7834eb04948788c7dda4ccdd77345e0270edc19559153"
+candidate:
+  artifact: benchmarks/results/sglang_mtp.json
+  sha256: "84f702effe6f1fcf1c1caa55d29eb0eaa91af95cd89f2da4fd90e03c08908fc3"
+policy:
+  primary_metric: decode_tokens_per_s
+  workload: short_decode_512
+  min_relative_improvement: 0.15
+  max_ttft_regression: 0.10
+  required_gates:
+    - request_success
+    - process_stability
+    - rollback
+supplemental_evidence:
+  - id: process_stability
+    kind: operator_attested
+    status: fail
+    source: benchmarks/results/REPORT.md
+    sha256: "7d474af742488651d6efd9becd7aa236e2c55fbd99f0efbf956492c009b3f751"
+  - id: rollback
+    kind: operator_attested
+    status: pass
+    source: benchmarks/results/REPORT.md
+    sha256: "7d474af742488651d6efd9becd7aa236e2c55fbd99f0efbf956492c009b3f751"
+claim_boundary: >
+  Bound to the exact frozen DGX Spark A/B artifacts (vLLM incumbent vs
+  SGLang EAGLE 3/1/4 MTP profile, thinking disabled, T=0). The synthetic
+  short_decode_512 workload shows a throughput improvement, but the
+  operator-attested production process-stability gate is recorded as FAIL
+  (concurrent delegation triggered HTTP 500 / SIGQUIT process-tree
+  shutdown); the decision must therefore reject regardless of the measured
+  speed win. No claim beyond the bound profiles and REPORT.md evidence.
