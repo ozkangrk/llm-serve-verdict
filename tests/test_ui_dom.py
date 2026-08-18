@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import re
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 
 from serving_verdict.engine import import_case
@@ -44,6 +45,10 @@ ALL_VERDICT_PILLS = ("PROMOTE", "REJECT", "INCONCLUSIVE")
 
 def _ui_js() -> str:
     return (WEB / "ui.js").read_text(encoding="utf-8")
+
+
+def _utc_date(iso_timestamp: str) -> str:
+    return datetime.fromisoformat(iso_timestamp).astimezone(UTC).date().isoformat()
 
 
 def _detail_response(bundle: dict) -> dict:
@@ -177,7 +182,7 @@ def test_index_list_verdict_first_with_created_at_and_document_title(tmp_path: P
     for card, b in zip(cards, (d, s), strict=True):
         assert card["href"] == "#/" + b["case_id"]
         assert b["case_id"] in card["text"]
-        assert b["created_at"].split("T")[0] in card["text"], "created_at (date) rendered"
+        assert _utc_date(b["created_at"]) in card["text"], "created_at (UTC date) rendered"
     # visible H1 carries the view title
     assert "Verdicts" in doc["listHeading"]
 
@@ -212,7 +217,7 @@ def test_ui_renders_promote_verdict_authority_and_hashes(tmp_path: Path) -> None
     # reason codes rendered as chips
     assert "PRIMARY_EFFECT_PASSED" in doc["reasonCodes"]
     # created_at rendered as a human date, full ISO in the title attribute
-    assert bundle["created_at"].split("T")[0] in doc["createdText"]
+    assert _utc_date(bundle["created_at"]) in doc["createdText"]
     # hashes rendered into the DOM (full 64-hex values)
     assert doc["baselineSha"] == bundle["baseline"]["sha256"]
     assert len(doc["baselineSha"]) == 64

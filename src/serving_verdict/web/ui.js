@@ -144,8 +144,8 @@
     var d = new Date(iso);
     if (isNaN(d.getTime())) return String(iso);
     var p = function (n) { return (n < 10 ? "0" : "") + n; };
-    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
-      " " + p(d.getHours()) + ":" + p(d.getMinutes()) + " UTC";
+    return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) +
+      " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + " UTC";
   }
 
   function setText(id, value) {
