@@ -12,13 +12,16 @@ is a `PROMOTE`. Everything else is `INCONCLUSIVE`, and that answer is a
 first-class, digested, verifiable artifact — not an error you have to
 re-litigate.
 
+![Serving Verdict verdict list](docs/screenshots/verdict-list.png)
+
 ## 30-second demo
 
 ```bash
 uv sync --extra dev
 uv run serving-verdict demo --out-dir demo      # runs both bundled fixture cases
 uv run serving-verdict list demo                 # both verdicts, one JSON object
-uv run serving-verdict verify demo/<bundle>.verdict.json
+uv run serving-verdict verify demo/demo-promote.verdict.json
+uv run serving-verdict verify demo/demo-reject.verdict.json
 uv run serving-verdict serve --host 127.0.0.1 --port 8787 --data-dir demo
 # open http://127.0.0.1:8787
 ```
@@ -31,12 +34,16 @@ the decision surface — and both sides are first-class:
 
 | fixture | verdict | why |
 |---|---|---|
-| `fixture-dspark` | `PROMOTE` | synthetic effect gain clears the threshold and every required gate passes |
-| `fixture-sglang` | `REJECT` | synthetic throughput win is overridden by a failed `process_stability` gate |
+| `demo-promote` | `PROMOTE` | synthetic effect gain clears the threshold and every required gate passes |
+| `demo-reject` | `REJECT` | synthetic throughput win is overridden by a failed `process_stability` gate |
 
 A `REJECT` is a success of the tool, not a failure of it. Both bundles verify
 offline with the same command, and neither is more "interesting" than the
 other: they are the same kind of object with different verdicts.
+
+| PROMOTE detail | REJECT detail |
+|---|---|
+| ![PROMOTE detail](docs/screenshots/promote-detail.png) | ![REJECT detail](docs/screenshots/reject-detail.png) |
 
 ![Verdict primitive](docs/verdict-primitive.svg)
 
