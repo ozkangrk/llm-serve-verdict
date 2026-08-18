@@ -14,6 +14,63 @@ re-litigate.
 
 ![Serving Verdict verdict list](docs/screenshots/verdict-list.png)
 
+## Why this exists
+
+Inference teams regularly change serving configurations: runtime versions,
+quantization, speculative decoding, batching, context limits, prefix caching,
+and GPU memory settings. A candidate can look faster in one benchmark while
+quietly breaking tool calls, increasing time-to-first-token, or crashing under
+the real application workload.
+
+Serving Verdict answers one operational question:
+
+> **Should this inference change replace the current configuration?**
+
+It turns separately produced measurements and test evidence into a release
+gate. Performance improvement is necessary only when the policy says it is;
+required correctness and stability gates always win. A fast candidate with a
+failed hard gate is `REJECT`, not a misleading green benchmark chart.
+
+## Business value
+
+| Without Serving Verdict | With Serving Verdict |
+|---|---|
+| Results are spread across logs, JSON files, spreadsheets, and chat messages. | One tamper-evident bundle binds the policy, exact evidence hashes, metrics, gates, and decision. |
+| Engineers manually decide whether a speed gain is worth a reliability regression. | Deterministic rules return `PROMOTE`, `REJECT`, or `INCONCLUSIVE` in a fixed, reviewable order. |
+| A synthetic throughput win can be promoted before production-specific failures are noticed. | Tool, correctness, stability, TTFT, and evidence-integrity gates can block the promotion. |
+| The reason for an old serving decision is difficult to reconstruct. | Append-only trial history and offline verification preserve what was decided and why. |
+| Teams repeat comparison methodology differently for every runtime change. | Metric semantics and comparability dimensions make the decision process repeatable. |
+
+This reduces review time and the risk of deploying an inference optimization
+that is faster but operationally worse. It does **not** calculate financial
+savings or guarantee production reliability; it makes the evidence and policy
+behind the decision explicit and reproducible.
+
+## Who uses it
+
+- Inference and performance engineers evaluating vLLM, SGLang, llama.cpp, or
+  another serving stack.
+- MLOps/platform teams reviewing runtime upgrades and GPU configuration changes.
+- Local-LLM users comparing quantization, speculative decoding, cache, batch,
+  and context settings.
+- Researchers who need a reproducible record of why a measured candidate was
+  accepted or rejected.
+
+## How it fits the workflow
+
+```text
+1. Run the same frozen tests on the current and candidate configurations.
+2. Bind the resulting artifacts and SHA-256 hashes in a case policy.
+3. Import the case with Serving Verdict.
+4. Inspect performance deltas, required gates, evidence authority, and scope.
+5. Verify the resulting decision bundle offline or serve it in the local UI.
+```
+
+The current v0.2 release consumes bound benchmark artifacts; it does not start
+model servers or generate load. A built-in OpenAI-compatible benchmark runner
+is being developed separately and will feed the same verdict engine without
+changing this decision contract.
+
 ## 30-second demo
 
 ```bash
