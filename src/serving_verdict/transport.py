@@ -1,5 +1,18 @@
-"""Credential-safe streaming transport for OpenAI-compatible benchmark requests."""
+"""Streaming HTTP transport for OpenAI-compatible chat completions.
 
+This is the only component that touches the network. Contracts:
+
+- Sends the fixed bearer key (passed by the caller, read from the environment
+  via :func:`serving_verdict.endpoint.resolve_api_key`); the key is never
+  logged, embedded in raised messages, or written to artifacts.
+- Rejects ALL redirects (a redirect must never carry the key to another host).
+- Classifies timeout / connection failure cleanly; the remote body is never
+  included in raised messages.
+- For a 2xx response: yields the HTTP status and an iterator of raw SSE lines
+  (``readline`` semantics) so callers can measure streaming deterministically.
+- For a non-2xx response: returns the status and an EMPTY line iterator; the
+  remote error body is deliberately dropped so it can never leak downstream.
+"""
 from __future__ import annotations
 
 import json
@@ -7,15 +20,16 @@ import socket
 import urllib.error
 import urllib.request
 from collections.abc import Iterator
+from contextlib import suppress
 from typing import Any
 
 from serving_verdict.endpoint import EndpointConfig
 
-_MAX_LINE_BYTES = 1024 * 1024
+CHAT_PATH = "/chat/completions"
 
 
 class EndpointTransportError(RuntimeError):
-    """A request could not establish or safely consume the endpoint stream."""
+    """A streaming chat request failed at the transport layer."""
 
 
 class _RejectRedirects(urllib.request.HTTPRedirectHandler):
@@ -31,50 +45,44 @@ class _RejectRedirects(urllib.request.HTTPRedirectHandler):
         raise EndpointTransportError("endpoint redirect rejected")
 
 
-def _stream_lines(response: Any) -> Iterator[str]:
+def _line_iterator(response: Any) -> Iterator[str]:
+    """Yield decoded lines from a 2xx streaming body (readline semantics)."""
     try:
-        with response:
-            while True:
-                raw = response.readline(_MAX_LINE_BYTES + 1)
-                if not raw:
-                    break
-                if len(raw) > _MAX_LINE_BYTES:
-                    raise EndpointTransportError("endpoint stream line exceeds size limit")
-                try:
-                    yield raw.decode("utf-8").rstrip("\r\n")
-                except UnicodeDecodeError as exc:
-                    raise EndpointTransportError("endpoint stream is not UTF-8") from exc
-    except EndpointTransportError:
-        raise
-    except TimeoutError:
-        raise EndpointTransportError("endpoint stream timeout") from None
-    except OSError:
-        raise EndpointTransportError("endpoint stream connection failure") from None
+        while True:
+            try:
+                line = response.readline()
+            except TimeoutError:
+                raise EndpointTransportError("endpoint stream timeout") from None
+            except (AttributeError, ValueError, OSError):
+                raise EndpointTransportError("endpoint stream connection failure") from None
+            if line == b"":
+                break
+            try:
+                yield line.decode("utf-8").rstrip("\r\n")
+            except UnicodeDecodeError as exc:
+                raise EndpointTransportError("endpoint stream is not UTF-8") from exc
+    finally:
+        response.close()
 
 
 def stream_chat_completions(
     config: EndpointConfig,
     api_key: str,
-    payload: dict[str, object],
+    payload: dict[str, Any],
     *,
     request_timeout_s: float,
 ) -> tuple[int, Iterator[str]]:
-    """POST one fixed chat-completions request and return status + SSE lines.
+    """POST one streaming chat-completions request.
 
-    Redirects are rejected before the bearer key can leave the configured
-    endpoint. Non-2xx responses return an empty line iterator; their bodies are
-    deliberately never read or exposed. Credentials are accepted only at the
-    call boundary and are not retained in the returned objects.
+    Returns ``(http_status, lines)``. For 2xx the iterator streams raw SSE
+    lines; for non-2xx it is empty (the error body is dropped). Transport
+    failures (timeout, connection failure, redirect) raise
+    :class:`EndpointTransportError` with a message that carries neither the
+    API key nor any remote body content.
     """
-    if request_timeout_s <= 0:
-        raise EndpointTransportError("request timeout must be positive")
-    if not isinstance(api_key, str) or not api_key:
-        raise EndpointTransportError("endpoint API key is unavailable")
-    body = dict(payload)
-    body["stream"] = True
-    data = json.dumps(body, ensure_ascii=True, separators=(",", ":")).encode()
+    data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
     request = urllib.request.Request(
-        f"{config.base_url}/chat/completions",
+        f"{config.base_url}{CHAT_PATH}",
         data=data,
         method="POST",
         headers={
@@ -86,23 +94,20 @@ def stream_chat_completions(
     opener = urllib.request.build_opener(_RejectRedirects())
     try:
         response = opener.open(request, timeout=request_timeout_s)
+        return response.status, _line_iterator(response)
     except EndpointTransportError:
         raise
     except urllib.error.HTTPError as exc:
-        # Never read the remote error body: callers need only the status for
-        # deterministic classification.
-        exc.close()
-        return int(exc.code), iter(())
+        # Drain and discard the error body: it is never surfaced downstream.
+        with suppress(TimeoutError, OSError):
+            exc.read()
+        return exc.code, iter(())
     except TimeoutError:
         raise EndpointTransportError("endpoint request timeout") from None
-    except urllib.error.URLError as exc:
-        if isinstance(exc.reason, (TimeoutError, socket.timeout)):
+    except (urllib.error.URLError, OSError) as exc:
+        # Fail-closed: the underlying reason (which may embed remote details)
+        # is never propagated into the message.
+        reason = getattr(exc, "reason", None)
+        if isinstance(reason, (socket.timeout, TimeoutError)):
             raise EndpointTransportError("endpoint request timeout") from None
         raise EndpointTransportError("endpoint connection failure") from None
-    except OSError:
-        raise EndpointTransportError("endpoint connection failure") from None
-    status = int(getattr(response, "status", response.getcode()))
-    if not 200 <= status < 300:
-        response.close()
-        return status, iter(())
-    return status, _stream_lines(response)

@@ -136,11 +136,12 @@ def _chat_identity(document: dict[str, Any], requested_model: str) -> str:
 
 
 def preflight_endpoint(
-    config: EndpointConfig, *, timeout_s: float = 10.0
+    config: EndpointConfig, *, timeout_s: float = 10.0, api_key: str | None = None
 ) -> PreflightResult:
     if timeout_s <= 0:
         raise EndpointPreflightError("timeout must be positive")
-    api_key = resolve_api_key(config)
+    if api_key is None:
+        api_key = resolve_api_key(config)
     models_document = _request_json(
         url=f"{config.base_url}/models",
         api_key=api_key,
