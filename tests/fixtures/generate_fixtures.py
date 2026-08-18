@@ -167,7 +167,7 @@ def main() -> int:
     report_sha = sha(ds / "DSPARK_REPORT.md")
     case = f"""schema_version: "serving-verdict.case.v0.1"
 id: fixture-dspark
-source_root: {ds}
+source_root: .
 baseline:
   artifact: baseline_mtp2.json
   sha256: "{base_sha}"
@@ -232,7 +232,7 @@ claim_boundary: "Minimized unit-test fixture; deterministic decision check only,
     sg_report_sha = sha(sg / "REPORT.md")
     sgcase = f"""schema_version: "serving-verdict.case.v0.1"
 id: fixture-sglang
-source_root: {sg}
+source_root: .
 baseline:
   artifact: baseline_vllm.json
   sha256: "{vllm_sha}"

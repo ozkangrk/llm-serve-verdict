@@ -59,6 +59,7 @@ def test_import_inconclusive_exit_0(tmp_path: Path) -> None:
     import yaml
 
     case_src = yaml.safe_load(DSKAB_FIXTURE.read_text())
+    case_src["source_root"] = str(DSKAB_FIXTURE.parent)
     case_src["candidate"]["sha256"] = "0" * 64
     p = tmp_path / "badcase.yaml"
     p.write_text(yaml.safe_dump(case_src), encoding="utf-8")

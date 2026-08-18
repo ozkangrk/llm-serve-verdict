@@ -1,6 +1,6 @@
 schema_version: "serving-verdict.case.v0.1"
 id: fixture-sglang
-source_root: /home/ozkangu/Desktop/Inference-Engineering-Studio/tests/fixtures/sglang
+source_root: .
 baseline:
   artifact: baseline_vllm.json
   sha256: "93524015d55008a2add396d198d65ee92989c7e2fc26149a59caa6890a475995"

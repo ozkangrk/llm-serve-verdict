@@ -1,6 +1,6 @@
 schema_version: "serving-verdict.case.v0.1"
 id: fixture-dspark
-source_root: /home/ozkangu/Desktop/Inference-Engineering-Studio/tests/fixtures/dspark
+source_root: .
 baseline:
   artifact: baseline_mtp2.json
   sha256: "8273c3b5231896733f6d3077364d98f476a4a924d605c8b084e1198bad899190"
