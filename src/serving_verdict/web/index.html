@@ -8,67 +8,124 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><span class="dot"></span>Serving Verdict</div>
+  <div class="brand"><span class="dot" aria-hidden="true"></span>Serving Verdict</div>
   <div class="topbar-sub">evidence-gated serving decisions &middot; read-only &middot; loopback</div>
 </header>
 
 <main>
-  <section id="index-view">
-    <h1>Verdicts</h1>
-    <p class="muted">Bound, tamper-evident decisions from local inference evidence. Verdict first, always as a text label.</p>
-    <div id="verdict-list" class="cards"></div>
-    <div id="index-error" class="error hidden"></div>
-  </section>
+  <!-- ===================== INDEX (list) ===================== -->
+  <section id="index-view" aria-labelledby="list-heading">
+    <h1 id="list-heading">Verdicts</h1>
+    <p class="muted">Bound, tamper-evident decisions from local inference evidence.
+      Verdict first, always as a text label. <span id="verdict-count" class="verdict-count"></span></p>
+    <div id="verdict-list" class="cards" aria-label="Verdict list"></div>
 
-  <section id="detail-view" class="hidden">
-    <button id="back-btn" class="back" type="button">&larr; All verdicts</button>
-    <div class="verdict-panel">
-      <div class="verdict-label" id="verdict-label">?</div>
-      <div>
-        <div class="case-id" id="detail-case-id"></div>
-        <div class="reason-codes" id="reason-codes"></div>
-      </div>
+    <div id="index-loading" class="loading hidden" role="status">Loading verdicts&hellip;</div>
+
+    <div id="index-empty" class="panel empty-state hidden">
+      <h2 id="empty-title" class="empty-title">No verdicts yet</h2>
+      <p id="empty-copy" class="muted"></p>
+      <ol id="onboarding-cmds" class="onboarding"></ol>
     </div>
 
-    <section class="panel">
-      <h2>Bound evidence (SHA-256)</h2>
-      <table class="kv">
-        <tr><td>Baseline artifact</td><td class="mono" id="baseline-artifact"></td></tr>
-        <tr><td>Baseline hash</td><td class="mono hash" id="baseline-sha"></td></tr>
-        <tr><td>Candidate artifact</td><td class="mono" id="candidate-artifact"></td></tr>
-        <tr><td>Candidate hash</td><td class="mono hash" id="candidate-sha"></td></tr>
-        <tr><td>Bundle digest</td><td class="mono hash" id="bundle-digest"></td></tr>
-        <tr><td>Integrity</td><td id="integrity"></td></tr>
-      </table>
-    </section>
+    <div id="index-error" class="error hidden"></div>
+    <button id="index-retry" class="btn hidden" type="button">Retry</button>
+  </section>
 
-    <section class="panel">
-      <h2>Comparable metrics</h2>
-      <p class="muted">Reported only when metric ID, unit, procedure, workload, concurrency, budget, thinking mode, warm/cold and aggregation all match. No automatic decode/e2e/aggregate conversion.</p>
-      <table id="metrics-table" class="metrics">
-        <thead><tr><th>Metric</th><th>Direction</th><th>Baseline</th><th>Candidate</th><th>&Delta; rel</th><th>Unit</th><th>Aggregation</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <div id="metrics-empty" class="muted hidden">No comparable metrics under the policy workload.</div>
-    </section>
+  <!-- ===================== ERROR PANELS (404 / 422 / load fail) ===================== -->
+  <section id="error-view" class="hidden" role="alert" aria-labelledby="error-title">
+    <button id="error-back" class="btn back" type="button">&larr; All verdicts</button>
+    <div class="panel error-panel">
+      <h1 id="error-title" class="error-title">Error</h1>
+      <p id="error-text" class="error-text"></p>
+      <p id="error-advice" class="muted"></p>
+      <button id="error-retry" class="btn" type="button">Retry</button>
+    </div>
+  </section>
 
-    <section class="panel" data-section="gate-authority">
-      <h2>Gates &amp; authority</h2>
-      <p class="muted">Machine-measured gates come from recognized artifact adapters; operator-attested gates are shown as such and are never relabeled.</p>
-      <table id="gates-table" class="metrics">
-        <thead><tr><th>Gate</th><th>Status</th><th>Authority</th><th>Evidence</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
+  <!-- ===================== DETAIL ===================== -->
+  <section id="detail-view" class="hidden" aria-labelledby="detail-case-id">
+    <button id="back-btn" class="btn back" type="button">&larr; All verdicts</button>
 
-    <section class="panel">
-      <h2>Claim boundary</h2>
-      <p id="claim-boundary" class="claim-boundary"></p>
-    </section>
+    <div id="detail-loading" class="loading hidden" role="status">Loading case&hellip;</div>
+
+    <div id="detail-body" class="hidden">
+      <div class="verdict-panel">
+        <div class="verdict" id="verdict-label"></div>
+        <div>
+          <div class="case-id" id="detail-case-id"></div>
+          <div class="created-at" id="detail-created"></div>
+          <div class="reason-codes" id="reason-codes"></div>
+        </div>
+      </div>
+
+      <section class="panel" id="gate-narrative" data-section="gate-narrative" aria-label="Why this verdict">
+        <h2>Why this verdict</h2>
+        <div id="gate-narrative-body"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Bound evidence (SHA-256)</h2>
+        <table class="kv">
+          <caption class="visually-hidden">Bound evidence artifacts and SHA-256 hashes</caption>
+          <tbody>
+            <tr><th scope="row">Baseline artifact</th><td class="mono" id="baseline-artifact"></td></tr>
+            <tr><th scope="row">Baseline hash</th><td class="hash-cell mono hash" id="baseline-sha"></td></tr>
+            <tr><th scope="row">Candidate artifact</th><td class="mono" id="candidate-artifact"></td></tr>
+            <tr><th scope="row">Candidate hash</th><td class="hash-cell mono hash" id="candidate-sha"></td></tr>
+            <tr><th scope="row">Bundle digest</th><td class="hash-cell mono hash" id="bundle-digest"></td></tr>
+            <tr><th scope="row">Integrity</th><td id="integrity"></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Comparable metrics</h2>
+        <p class="muted">Reported only when metric ID, unit, procedure, workload, concurrency, budget,
+          thinking mode, warm/cold and aggregation all match. Values are shown to 4 significant digits;
+          hover or tap a value for the full precision. No automatic decode/e2e/aggregate conversion.</p>
+        <div id="metric-cards" class="metric-cards" aria-label="Comparable metrics (cards)"></div>
+        <div class="table-wrap">
+        <table id="metrics-table" class="metrics">
+          <caption id="metrics-caption" class="visually-hidden">Comparable metrics: baseline and candidate values with relative delta</caption>
+          <thead><tr>
+            <th scope="col">Metric</th><th scope="col">Direction</th><th scope="col">Baseline</th>
+            <th scope="col">Candidate</th><th scope="col">&Delta; rel</th><th scope="col">Unit</th>
+            <th scope="col">Aggregation</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+        </div>
+        <div id="metrics-empty" class="muted hidden">No comparable metrics under the policy workload.</div>
+      </section>
+
+      <section class="panel" data-section="gate-authority">
+        <h2>Gates &amp; authority</h2>
+        <p class="muted">Machine-measured gates come from recognized artifact adapters;
+          operator-attested gates are shown as such and are never relabeled.</p>
+        <div class="table-wrap">
+        <table id="gates-table" class="metrics">
+          <caption id="gates-caption" class="visually-hidden">Gate status, measurement authority and evidence</caption>
+          <thead><tr>
+            <th scope="col">Gate</th><th scope="col">Status</th>
+            <th scope="col">Authority</th><th scope="col">Evidence</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Claim boundary</h2>
+        <p id="claim-boundary" class="claim-boundary"></p>
+      </section>
+    </div>
   </section>
 </main>
 
-<footer class="footer">Serving Verdict MVP v0.1 &middot; deterministic engine, no LLM opinion &middot; offline UI</footer>
+<div id="copy-live" class="visually-hidden" role="status" aria-live="polite"></div>
+
+<footer class="footer">Serving Verdict v0.2 &middot; deterministic engine, no LLM opinion &middot; offline UI</footer>
 <script src="/ui.js"></script>
 </body>
 </html>
