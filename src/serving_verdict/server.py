@@ -1,25 +1,35 @@
-"""Loopback-only read-only FastAPI server for verdict bundles.
+"""Loopback-only read-only FastAPI server for verdict bundles and trials.
 
 MVP contract:
 - Default and MVP-only bind is ``127.0.0.1``; any other host is rejected
   (``UsageError``) and there is no override flag.
-- Read-only APIs only: ``GET /api/v1/health``, ``GET /api/v1/verdicts``,
-  ``GET /api/v1/verdicts/{case_id}``, ``GET /api/v1/metrics``, ``GET /``.
-  Any other method yields 405; unknown paths yield 404.
-- The data directory is read by convention; the app never writes.
-- Error responses carry a stable machine-readable ``error`` string and never
-  include file contents or secrets.
+- Read-only APIs only; any other method yields 405; unknown paths 404.
+- The data directory and the trial registry are read by convention; the
+  app never writes (the registry connection is opened read-only).
+- Error responses carry a stable machine-readable ``error`` string and
+  never include file contents or secrets.
 - ``run_server`` blocks until the server shuts down; on SIGTERM uvicorn
   closes the listeners and releases the port (E2E-verified in tests).
+
+v0.2 additions (v0.1 endpoints are unchanged):
+- ``GET /api/v1/ready``         — readiness incl. trial-store availability.
+- ``GET /api/v1/trials``        — current per-case trial state (registry +
+                                  on-disk validity; the bundle file is the
+                                  source of truth).
+- ``GET /api/v1/trials/{id}``   — trial state + append-only event history +
+                                  current bundle with integrity.
+- ``GET /api/v1/artifacts/{sha}`` — serve one manifest-listed content-
+                                  addressed object after re-hashing it.
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from serving_verdict.engine import BUNDLE_SCHEMA_VERSION, load_bundle, verify_bundle
 from serving_verdict.errors import IntegrityError, ServingVerdictError, UsageError
@@ -31,8 +41,10 @@ logger = logging.getLogger("serving_verdict.server")
 ONLY_BIND_HOST = "127.0.0.1"
 DEFAULT_PORT = 8787
 
+ARTIFACTS_SCHEMA_VERSION = "serving-verdict.artifacts.v0.1"
 
-def _bundle_rows(data_dir: Path) -> list[dict[str, Any]]:
+
+def bundle_rows(data_dir: Path) -> list[dict[str, Any]]:
     """Read-only index of valid bundles in the data dir (CLI `list` parity)."""
     verdicts: list[dict[str, Any]] = []
     for path in sorted(data_dir.glob("*.json")):
@@ -74,6 +86,75 @@ def _find_bundle(data_dir: Path, case_id: str) -> tuple[dict[str, Any], Path] | 
     return None
 
 
+def _trial_rows_readonly(data_dir: Path) -> list[dict[str, Any]]:
+    """Current per-case state: registry rows + on-disk validity re-check.
+
+    The registry is opened read-only (the server never writes); bundle files
+    remain the source of truth, so a registry row is only reported ``valid``
+    when its bundle file still exists and passes offline verification.
+    """
+    from serving_verdict.trialstore import TrialStore
+
+    store = TrialStore(data_dir, initialize=False)
+    if not store.db_path.is_file():
+        # No registry yet: fall back to a pure on-disk view (all valid rows
+        # only, no events) so the endpoint degrades gracefully.
+        return [
+            {**row, "events": 0}
+            for row in (
+                {
+                    "case_id": r["case_id"],
+                    "status": "valid",
+                    "verdict": r["verdict"],
+                    "reason_codes": r["reason_codes"],
+                    "bundle_digest": r["bundle_digest"],
+                    "bundle_file": r["file"],
+                }
+                for r in bundle_rows(data_dir)
+            )
+        ]
+    try:
+        rows = store.list_trials_readonly()
+    except UsageError:
+        return []
+    disk_valid = {r["case_id"]: r["file"] for r in bundle_rows(data_dir)}
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        status = row["status"]
+        if status == "valid":
+            # re-check the on-disk file (source of truth)
+            on_disk = disk_valid.get(row["case_id"])
+            if on_disk is None or on_disk != row["bundle_file"]:
+                status = "missing"
+        row["status"] = status
+        out.append(row)
+    return out
+
+
+def _load_artifacts_manifest(data_dir: Path) -> dict[str, Any] | None:
+    """Locate the artifacts manifest in the data dir (first *.json parent)."""
+    candidates: list[Path] = []
+    for name in ("artifacts.json",):
+        p = data_dir / name
+        if p.is_file():
+            candidates.append(p)
+    if not candidates:
+        # a bundle's manifest lives next to the bundle; scan data dir root
+        # and any single bundle file's directory (the data dir itself).
+        for path in sorted(data_dir.glob("*.json")):
+            if path.name == "artifacts.json":
+                candidates.append(path)
+    if not candidates:
+        return None
+    try:
+        doc = load_bundle(candidates[0])
+    except (UsageError, ServingVerdictError):
+        return None
+    if not isinstance(doc, dict) or doc.get("schema_version") != ARTIFACTS_SCHEMA_VERSION:
+        return None
+    return doc
+
+
 def create_app(host: str, port: int, data_dir: str | Path) -> FastAPI:
     """Build the read-only FastAPI app.
 
@@ -85,7 +166,7 @@ def create_app(host: str, port: int, data_dir: str | Path) -> FastAPI:
         )
     data = Path(data_dir).resolve()
 
-    app = FastAPI(title="Serving Verdict", version="0.1.0")
+    app = FastAPI(title="Serving Verdict", version="0.2.0")
 
     @app.exception_handler(HTTPException)
     async def _flat_http_error(_request: Any, exc: HTTPException) -> Any:
@@ -109,11 +190,42 @@ def create_app(host: str, port: int, data_dir: str | Path) -> FastAPI:
             "read_only": True,
         }
 
+    @app.get("/api/v1/ready")
+    def ready() -> Any:
+        if not data.is_dir():
+            return JSONResponse(
+                status_code=503,
+                content={"status": "not_ready", "reason": "data dir not found", "read_only": True},
+            )
+        from serving_verdict.trialstore import TrialStore
+
+        db: dict[str, Any] = {"available": False}
+        if (data / "trial_store.sqlite3").is_file():
+            try:
+                store = TrialStore(data, initialize=False)
+                counts = store.status_report_readonly()
+                version = store.user_version_readonly()
+                db = {
+                    "available": True,
+                    "user_version": version,
+                    "trials": counts["trials"],
+                    "events": counts["events"],
+                }
+            except UsageError:
+                db = {"available": False, "reason": "registry unreadable"}
+        return {
+            "status": "ready",
+            "read_only": True,
+            "bind_host": ONLY_BIND_HOST,
+            "data_dir": str(data),
+            "database": db,
+        }
+
     @app.get("/api/v1/verdicts")
     def verdicts() -> dict[str, Any]:
         if not data.is_dir():
             return {"data_dir": str(data), "verdicts": []}
-        return {"data_dir": str(data), "verdicts": _bundle_rows(data)}
+        return {"data_dir": str(data), "verdicts": bundle_rows(data)}
 
     @app.get("/api/v1/verdicts/{case_id}")
     def verdict_detail(case_id: str) -> dict[str, Any]:
@@ -125,15 +237,12 @@ def create_app(host: str, port: int, data_dir: str | Path) -> FastAPI:
             verify_bundle(bundle)
             integrity: dict[str, Any] = {"valid": True}
         except IntegrityError as exc:
-            # Stable error string; no file contents or hashes of the file leak.
             raise HTTPException(
                 status_code=422, detail={"error": f"bundle integrity verification failed: {exc}"}
             ) from exc
         return {
             "bundle": bundle,
             "integrity": integrity,
-            # Denormalized, UI-convenience views (all derived from the bundle;
-            # the bundle remains the single source of truth).
             "case_id": bundle["case_id"],
             "verdict": bundle["verdict"],
             "reason_codes": bundle["reason_codes"],
@@ -159,6 +268,109 @@ def create_app(host: str, port: int, data_dir: str | Path) -> FastAPI:
                 for metric_id, d in METRIC_REGISTRY.items()
             }
         }
+
+    @app.get("/api/v1/trials")
+    def trials() -> dict[str, Any]:
+        if not data.is_dir():
+            raise HTTPException(status_code=404, detail={"error": "data dir not found"})
+        rows = _trial_rows_readonly(data)
+        # annotate with append-only event counts
+        from serving_verdict.trialstore import TrialStore
+
+        events: dict[str, int] = {}
+        if (data / "trial_store.sqlite3").is_file():
+            try:
+                events = TrialStore(data, initialize=False).event_counts_readonly()
+            except UsageError:
+                events = {}
+        for row in rows:
+            row["events"] = events.get(row["case_id"], 0)
+        return {"data_dir": str(data), "trials": rows}
+
+    @app.get("/api/v1/trials/{case_id}")
+    def trial_detail(case_id: str) -> dict[str, Any]:
+        if not data.is_dir():
+            raise HTTPException(status_code=404, detail={"error": "data dir not found"})
+        from serving_verdict.trialstore import TrialStore
+
+        store = (
+            TrialStore(data, initialize=False)
+            if (data / "trial_store.sqlite3").is_file()
+            else None
+        )
+        trial = store.get_trial_readonly(case_id) if store is not None else None
+        found = _find_bundle(data, case_id)
+        if trial is None and found is None:
+            raise HTTPException(status_code=404, detail={"error": "trial not found"})
+        events = store.list_events_readonly(case_id) if store is not None else []
+        payload: dict[str, Any] = {
+            "case_id": case_id,
+            "trial": trial or {
+                "case_id": case_id,
+                "status": "valid",
+                "verdict": found[0]["verdict"] if found else None,
+                "reason_codes": found[0]["reason_codes"] if found else [],
+                "bundle_digest": found[0]["bundle_digest"] if found else None,
+                "bundle_file": found[1].name if found else None,
+            },
+            "events": events,
+        }
+        if found is not None:
+            bundle, _path = found
+            try:
+                verify_bundle(bundle)
+                payload["bundle"] = bundle
+                payload["integrity"] = {"valid": True}
+            except IntegrityError as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail={"error": f"bundle integrity verification failed: {exc}"},
+                ) from exc
+        return payload
+
+    @app.get("/api/v1/artifacts/{sha}")
+    def artifact(sha: str) -> Response:
+        import re
+
+        if not re.match(r"^[0-9a-f]{64}$", sha):
+            raise HTTPException(status_code=404, detail={"error": "artifact not found"})
+        if not data.is_dir():
+            raise HTTPException(status_code=404, detail={"error": "data dir not found"})
+        manifest = _load_artifacts_manifest(data)
+        if manifest is None:
+            raise HTTPException(status_code=404, detail={"error": "no artifact manifest"})
+        entries = manifest.get("artifacts")
+        if not isinstance(entries, dict):
+            raise HTTPException(status_code=404, detail={"error": "no artifact manifest"})
+        if sha not in {
+            e.get("sha256") for e in entries.values() if isinstance(e, dict)
+        }:
+            raise HTTPException(status_code=404, detail={"error": "artifact not found"})
+        obj = (data / "archive" / "objects" / sha[:2] / sha).resolve()
+        # fail-closed layout check: the object must stay inside the data dir
+        try:
+            obj.relative_to(data.resolve())
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail={"error": "artifact not found"}) from exc
+        if not obj.is_file():
+            raise HTTPException(status_code=404, detail={"error": "artifact not found"})
+        digest = hashlib.sha256()
+        try:
+            with open(obj, "rb") as fh:
+                while True:
+                    chunk = fh.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    digest.update(chunk)
+        except OSError as exc:
+            raise HTTPException(
+                status_code=404, detail={"error": "artifact not found"}
+            ) from exc
+        if digest.hexdigest() != sha:
+            raise HTTPException(
+                status_code=422, detail={"error": "artifact integrity verification failed"}
+            )
+        return Response(content=obj.read_bytes(), media_type="application/octet-stream")
 
     @app.get("/")
     def index() -> FileResponse:

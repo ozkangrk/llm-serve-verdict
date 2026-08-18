@@ -154,10 +154,20 @@ def _as_source_root(doc: dict[str, Any]) -> str:
     if not isinstance(raw, str) or not raw.strip():
         raise CaseConfigError("case.source_root must be a non-empty string")
     root = Path(raw)
-    if not root.is_absolute():
-        raise CaseConfigError(f"case.source_root must be an absolute directory: {raw!r}")
-    if not root.is_dir():
-        raise CaseConfigError(f"case.source_root does not exist or is not a directory: {raw!r}")
+    if root.is_absolute():
+        # v0.1 back-compat: an absolute root must already exist.
+        if not root.is_dir():
+            raise CaseConfigError(f"case.source_root does not exist or is not a directory: {raw!r}")
+        return raw
+    # v0.2 portable: a relative root resolves against the PARENT directory of
+    # the case file. Traversal is rejected up front (config error, exit 2);
+    # existence is deliberately NOT checked here — a missing relative root is
+    # an evidence-level failure that yields an INCONCLUSIVE bundle (exit 0),
+    # not a config error.
+    if ".." in root.parts:
+        raise CaseConfigError(
+            f"case.source_root must not contain '..' traversal segments: {raw!r}"
+        )
     return raw
 
 

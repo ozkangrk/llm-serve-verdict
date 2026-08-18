@@ -378,18 +378,56 @@ def _combine_gate_statuses(statuses: list[str]) -> str:
     return "pass" if all(s == "pass" for s in statuses) else "missing"
 
 
-def import_case(case_path: str | Path) -> dict[str, Any]:
+def _resolve_source_root(case_file: Path, source_root: str) -> Path | None:
+    """Resolve a case config's source_root to an existing directory.
+
+    Absolute roots are used as-is; relative roots resolve against the parent
+    directory of the case file (v0.2 portable). Returns None when the
+    resolved directory does not exist (callers decide how to fail: the
+    importer yields an INCONCLUSIVE bundle, the archiver fails closed).
+    """
+    root = Path(source_root)
+    if root.is_absolute():
+        resolved = root.resolve()
+    else:
+        base = case_file.resolve().parent
+        resolved = (base / root).resolve()
+    return resolved if resolved.is_dir() else None
+
+
+def import_case(case_path: str | Path, source_root_override: str | Path | None = None) -> dict[str, Any]:
     """Import a case config, load bound evidence, decide, and build a bundle.
 
     Returns the full bundle dict for any valid verdict (PROMOTE/REJECT/
     INCONCLUSIVE). Raises CaseConfigError (exit 2) when the case config itself
     is unusable.
+
+    ``source_root_override`` (CLI-only, v0.2) replaces the config's source
+    root before the evidence loader is constructed; it must be an absolute
+    existing directory. A relative ``source_root`` in the config resolves
+    against the parent directory of the case file.
     """
     from serving_verdict.errors import CaseConfigError
 
-    cfg: CaseConfig = load_case_config(case_path)
-    loader = EvidenceLoader(cfg.source_root)
-
+    case_file = Path(case_path)
+    cfg: CaseConfig = load_case_config(case_file)
+    if source_root_override is not None:
+        override = Path(source_root_override)
+        if not override.is_absolute():
+            raise CaseConfigError(
+                f"--source-root must be an absolute directory: {source_root_override!r}"
+            )
+        if not override.is_dir():
+            raise CaseConfigError(
+                f"--source-root does not exist or is not a directory: {source_root_override!r}"
+            )
+        cfg = _with_source_root(cfg, str(override.resolve()))
+    else:
+        root = _resolve_source_root(case_file, cfg.source_root)
+        if root is not None and not Path(cfg.source_root).is_absolute():
+            cfg = _with_source_root(cfg, str(root))
+        # A missing/absolute root is used as-is: EvidenceLoader raises
+        # EvidenceError, which import_case maps to an INCONCLUSIVE bundle.
     def inconclusive_bundle(reason_codes: list[str], detail: str = "") -> dict[str, Any]:
         payload: dict[str, Any] = {
             "schema_version": BUNDLE_SCHEMA_VERSION,
@@ -408,6 +446,11 @@ def import_case(case_path: str | Path) -> dict[str, Any]:
             payload["inconclusive_detail"] = detail
         payload["bundle_digest"] = compute_bundle_digest(payload)
         return payload
+
+    try:
+        loader = EvidenceLoader(cfg.source_root)
+    except EvidenceError as exc:
+        return inconclusive_bundle([RC_EVIDENCE_UNAVAILABLE], str(exc))
 
     def load_side(ref: Any) -> EvidenceBlob:
         try:
@@ -510,3 +553,16 @@ def import_case(case_path: str | Path) -> dict[str, Any]:
     )
     decision = decide(inp)
     return build_bundle(decision, inp, datetime.now(UTC).isoformat())
+
+
+def _with_source_root(cfg: CaseConfig, root: str) -> CaseConfig:
+    """Return a copy of the config with a different source_root (v0.2)."""
+    return CaseConfig(
+        case_id=cfg.case_id,
+        source_root=root,
+        baseline=cfg.baseline,
+        candidate=cfg.candidate,
+        policy=cfg.policy,
+        supplemental=cfg.supplemental,
+        claim_boundary=cfg.claim_boundary,
+    )

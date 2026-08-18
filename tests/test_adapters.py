@@ -188,9 +188,9 @@ def test_supplemental_duplicate_ids_same_status_rejected(tmp_path: Path) -> None
         load_case_config(p)
 
 
-def test_source_root_must_be_absolute_existing_dir(tmp_path: Path) -> None:
-    """F4: source_root must be an absolute, existing directory (fail-closed exit 2)."""
-    for bad in (".", "relative/path", "/nonexistent-root-xyz", str(tmp_path / "missing-dir")):
+def test_absolute_source_root_must_exist(tmp_path: Path) -> None:
+    """Absolute source roots remain fail-closed when the directory is missing."""
+    for bad in ("/nonexistent-root-xyz", str(tmp_path / "missing-dir")):
         doc = base_case(tmp_path, "a.json", "b.json")
         doc["source_root"] = bad
         p = write_case(tmp_path, doc, name=f"case-{abs(hash(bad))}.yaml")

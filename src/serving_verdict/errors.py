@@ -44,6 +44,18 @@ class IntegrityError(ServingVerdictError):
     exit_code = 4
 
 
+class ArchiveError(ServingVerdictError):
+    """Content-addressed artifact store operation failed (fail-closed).
+
+    Raised when an artifact cannot be stored safely: symlink/special source,
+    size over the 20 MiB bound, escape outside the base dir or the store
+    layout, or a copy that does not re-hash to its digest. No partial store
+    or manifest is produced; the caller exits 2.
+    """
+
+    exit_code = 2
+
+
 class InconclusiveError(ServingVerdictError):
     """Evidence integrity/comparability problem that yields an INCONCLUSIVE bundle.
 
