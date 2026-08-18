@@ -35,16 +35,16 @@ jobs:
         run: uv python install ${{ matrix.python }}
 
       - name: Create environment (uv)
-        run: uv sync --frozen --python ${{ matrix.python }}
+        run: uv sync --frozen --extra dev --python ${{ matrix.python }}
 
       - name: Run test suite (pytest)
-        run: uv run --python ${{ matrix.python }} pytest -q
+        run: uv run --frozen pytest -q
 
       - name: Lint (ruff)
-        run: uv run --python ${{ matrix.python }} ruff check src tests
+        run: uv run --frozen ruff check src tests
 
       - name: Type check (mypy)
-        run: uv run --python ${{ matrix.python }} mypy src
+        run: uv run --frozen mypy src
 
       - name: Build distributions (sdist + wheel)
         run: uv build
