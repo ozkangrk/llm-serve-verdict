@@ -61,7 +61,7 @@ jobs:
         run: uv python install 3.12
 
       - name: Create environment (uv)
-        run: uv sync --frozen --python 3.12
+        run: uv sync --frozen --extra dev --python 3.12
 
       - name: Determine the version to publish
         id: version
@@ -79,7 +79,7 @@ jobs:
       - name: Verify version matches pyproject.toml
         run: |
           version="$([ -n "${{ github.event.inputs.version }}" ] && echo "${{ github.event.inputs.version }}" || echo "${GITHUB_REF_NAME#v}")"
-          actual="$(uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          actual="$(uv run --frozen python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
           if [ "$version" != "$actual" ]; then
             echo "::error::requested version $version does not match pyproject.toml ($actual)"
             exit 1
@@ -90,13 +90,13 @@ jobs:
         run: git diff --exit-code HEAD
 
       - name: Run test suite (pytest)
-        run: uv run --python 3.12 pytest -q
+        run: uv run --frozen pytest -q
 
       - name: Lint (ruff)
-        run: uv run --python 3.12 ruff check src tests
+        run: uv run --frozen ruff check src tests
 
       - name: Type check (mypy)
-        run: uv run --python 3.12 mypy src
+        run: uv run --frozen mypy src
 
       - name: Build distributions
         run: uv build
@@ -105,7 +105,7 @@ jobs:
         run: |
           uv venv /tmp/wheel-venv --python 3.12
           uv pip install --python /tmp/wheel-venv/bin/python dist/*.whl
-          /tmp/wheel-venv/bin/python -c "import serving_verdict; print(serving_verdict.__version__)"
+          /tmp/wheel-venv/bin/python -c "import importlib.metadata as m, serving_verdict as s; assert s.__version__ == m.version('serving-verdict'), (s.__version__, m.version('serving-verdict'))"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
