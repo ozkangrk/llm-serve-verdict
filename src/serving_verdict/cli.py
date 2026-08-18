@@ -179,6 +179,9 @@ def _archive_evidence(
     manifest = {
         "schema_version": "serving-verdict.artifacts.v0.1",
         "bundle_case_id": bundle.get("case_id"),
+        "archive_root": os.path.relpath(
+            Path(archive_dir).resolve(), bundle_parent.resolve()
+        ),
         "artifacts": artifacts,
     }
     return manifest
@@ -205,7 +208,10 @@ def _verify_archive(bundle_path: Path) -> int:
         raise UsageError("archive manifest is malformed: missing 'artifacts' mapping")
     import hashlib
 
-    archive_root = bundle_path.parent / "archive"
+    archive_locator = manifest.get("archive_root", "archive")
+    if not isinstance(archive_locator, str) or not archive_locator:
+        raise UsageError("archive manifest has an invalid archive_root")
+    archive_root = (bundle_path.parent / archive_locator).resolve()
     verified = 0
     for rel, entry in artifacts.items():
         if not isinstance(entry, dict):
@@ -217,7 +223,11 @@ def _verify_archive(bundle_path: Path) -> int:
         # the manifest path must be the canonical content-addressed layout
         if rel_path != f"objects/{sha[:2]}/{sha}":
             raise IntegrityError(f"archive manifest path is not content-addressed: {rel}")
-        obj = archive_root.joinpath(rel_path)
+        obj = archive_root.joinpath(rel_path).resolve()
+        try:
+            obj.relative_to(archive_root)
+        except ValueError as exc:
+            raise IntegrityError(f"archive object escapes store root: {rel}") from exc
         if not obj.is_file():
             raise IntegrityError(f"archived artifact missing from store: {rel}")
         digest = hashlib.sha256()

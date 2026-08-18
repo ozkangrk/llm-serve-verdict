@@ -227,7 +227,7 @@ def decide(inp: DecisionInput) -> Decision:
         return inconclusive(RC_REQUIRED_GATE_MISSING, tuple(comparisons))
 
     # Rule 5: TTFT regression gate.
-    if inp.max_ttft_regression > 0:
+    if inp.max_ttft_regression >= 0:
         if not ttft_ok or ttft_base is None or ttft_cand is None:
             return inconclusive(RC_METRIC_NOT_COMPARABLE, tuple(comparisons))
         if ttft_base.value > 0:
@@ -392,7 +392,7 @@ def _resolve_source_root(case_file: Path, source_root: str) -> Path | None:
     else:
         base = case_file.resolve().parent
         resolved = (base / root).resolve()
-    return resolved if resolved.is_dir() else None
+    return resolved
 
 
 def import_case(case_path: str | Path, source_root_override: str | Path | None = None) -> dict[str, Any]:

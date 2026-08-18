@@ -137,6 +137,17 @@ def test_request_payload_is_frozen_and_secret_free() -> None:
         assert "secret" not in dumped
 
 
+def test_request_payload_uses_the_frozen_kind_prompt() -> None:
+    from serving_verdict.profile import build_request_payload
+
+    fresh = [spec for spec in specs() if spec.kind == "serial_fresh"]
+    first = build_request_payload(QUICK_PROFILE, fresh[0], "m", index_in_kind=0)
+    second = build_request_payload(QUICK_PROFILE, fresh[1], "m", index_in_kind=1)
+    assert first["messages"][0]["content"] == QUICK_PROFILE.prompt_for(fresh[0], 0)
+    assert second["messages"][0]["content"] == QUICK_PROFILE.prompt_for(fresh[1], 1)
+    assert first["messages"] != second["messages"]
+
+
 def test_tool_call_payload_carries_frozen_schema() -> None:
     from serving_verdict.profile import build_request_payload
 

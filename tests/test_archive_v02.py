@@ -107,6 +107,21 @@ def test_verify_archive_survives_source_deletion(tmp_path: Path) -> None:
         assert body["artifacts_verified"] == 3
 
 
+def test_verify_archive_uses_manifest_bound_external_store(tmp_path: Path) -> None:
+    case, _ = _build_case(tmp_path)
+    bundle_dir = tmp_path / "bundles"
+    bundle_dir.mkdir()
+    out = bundle_dir / "bundle.json"
+    store = tmp_path / "external" / "evidence-store"
+    store.parent.mkdir()
+    imported = run_cli(
+        "import-case", str(case), "--out", str(out), "--archive", str(store)
+    )
+    assert imported.returncode == 0, imported.stderr
+    verified = run_cli("verify", str(out), "--archive")
+    assert verified.returncode == 0, verified.stderr
+
+
 def test_verify_archive_no_manifest_exit_2(tmp_path: Path) -> None:
     case, _ = _build_case(tmp_path)
     out = tmp_path / "bundle.json"

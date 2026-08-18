@@ -119,6 +119,40 @@ def test_relative_root_missing_dir_is_inconclusive(tmp_path: Path) -> None:
     assert "EVIDENCE_UNAVAILABLE" in bundle["reason_codes"]
 
 
+def test_missing_relative_root_never_falls_back_to_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    case_dir = tmp_path / "case-dir"
+    case_dir.mkdir()
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    decoy = cwd / "evidence"
+    decoy.mkdir()
+    base = make_dspark_ab_fixture(decoy, filename="base.json", decode=25.62)
+    cand = make_dspark_ab_fixture(decoy, filename="cand.json", decode=63.27)
+    doc = {
+        "schema_version": CASE_SCHEMA,
+        "id": "no-cwd-fallback",
+        "source_root": "evidence",
+        "baseline": {"artifact": "base.json", "sha256": sha256_file(base)},
+        "candidate": {"artifact": "cand.json", "sha256": sha256_file(cand)},
+        "policy": {
+            "primary_metric": "decode_tokens_per_s",
+            "workload": "edit_cold",
+            "min_relative_improvement": 0.15,
+            "max_ttft_regression": 0.10,
+            "required_gates": ["request_success"],
+        },
+        "claim_boundary": "missing case-relative root",
+    }
+    case = case_dir / "case.yaml"
+    case.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    monkeypatch.chdir(cwd)
+    bundle = import_case(case)
+    assert bundle["verdict"] == "INCONCLUSIVE"
+    assert bundle["reason_codes"] == ["EVIDENCE_UNAVAILABLE"]
+
+
 def test_relative_root_traversal_rejected(tmp_path: Path) -> None:
     """'../outside' must not escape upward past the case-file parent chain in a way
     that bypasses the child-path safety model: traversal roots are a config error."""

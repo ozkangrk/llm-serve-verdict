@@ -161,8 +161,8 @@ What is actually exercised, as of this tree:
 | Canonical digest (determinism, NaN rejection, mutation sensitivity) | covered by unit tests (`tests/test_canonical.py`) |
 | Both artifact adapters against minimized fixtures | covered by unit tests (`tests/test_adapters.py`) |
 | CLI exit codes, `--json` contract, loopback server E2E (incl. port release on SIGTERM) | covered by tests (`tests/test_cli.py`, `tests/test_server.py`, `tests/test_ui_dom.py`) |
-| CI matrix: Linux + macOS, Python 3.11 + 3.12 (pytest, ruff, mypy, build) | defined in `.github/workflows/ci.yaml`; not yet run on the `demo`/history commands |
-| `demo` command and fixture-portable quickstart | provided by the v0.2 backend workstream; not exercised on this branch |
+| CI matrix: Linux + macOS, Python 3.11 + 3.12 (pytest, ruff, mypy, build) | green in GitHub Actions, including portable demo/history tests and wheel import |
+| `demo` command and fixture-portable quickstart | exercised by `tests/test_demo_v02.py` and `tests/test_cli_v02.py` |
 | Windows | **not** tested and **not** supported in v0.2 |
 | The two real-world case configs under `configs/cases/` | bind absolute source-tree paths on one machine (see Advanced); not reproducible from a fresh checkout |
 
@@ -177,10 +177,12 @@ integrity verification are excluded from the index and UI by design
 
 ```text
 serving-verdict demo --out-dir DIR [--json]
-serving-verdict import-case CASE.yaml --out BUNDLE.json [--json]
-serving-verdict verify BUNDLE.json [--json]
+serving-verdict import-case CASE.yaml --out BUNDLE.json [--source-root DIR] [--archive DIR] [--json]
+serving-verdict verify BUNDLE.json [--archive] [--json]
 serving-verdict list DATA_DIR [--json]
 serving-verdict show BUNDLE.json [--json]
+serving-verdict history [DATA_DIR] [--json]
+serving-verdict reindex [DATA_DIR] [--json]
 serving-verdict serve --host 127.0.0.1 --port 8787 --data-dir DATA_DIR
 ```
 
@@ -196,8 +198,10 @@ Exit codes:
 
 ## HTTP / UI
 
-- `GET /api/v1/health`, `GET /api/v1/verdicts`,
-  `GET /api/v1/verdicts/{case_id}`, `GET /api/v1/metrics`, `GET /` (the UI).
+- `GET /api/v1/health`, `GET /api/v1/ready`, `GET /api/v1/verdicts`,
+  `GET /api/v1/verdicts/{case_id}`, `GET /api/v1/trials`,
+  `GET /api/v1/trials/{case_id}`, `GET /api/v1/artifacts/{sha}`,
+  `GET /api/v1/metrics`, and `GET /` (the UI).
 - Loopback-only (`127.0.0.1`); any other host is rejected at startup.
 - Read-only: no POST/PUT/PATCH/DELETE. No live system probing (post-v0.2).
 

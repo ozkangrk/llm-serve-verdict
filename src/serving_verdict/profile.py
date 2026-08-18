@@ -270,7 +270,12 @@ def workload_hash(profile: BenchmarkProfile) -> str:
     return workload_hash_from_spec(profile.workload_spec())
 
 
-def build_request_payload(profile: BenchmarkProfile, spec: RequestSpec, model: str) -> dict[str, Any]:
+def build_request_payload(
+    profile: BenchmarkProfile,
+    spec: RequestSpec,
+    model: str,
+    index_in_kind: int = 0,
+) -> dict[str, Any]:
     """Build the fixed OpenAI-compatible chat-completions body for one spec.
 
     Contains no credentials. ``temperature`` is pinned to 0 and streaming is
@@ -279,7 +284,9 @@ def build_request_payload(profile: BenchmarkProfile, spec: RequestSpec, model: s
     """
     payload: dict[str, Any] = {
         "model": model,
-        "messages": [{"role": "user", "content": "Reply exactly: PROBE"}],
+        "messages": [
+            {"role": "user", "content": profile.prompt_for(spec, index_in_kind)}
+        ],
         "temperature": 0,
         "stream": True,
         "stream_options": {"include_usage": True},

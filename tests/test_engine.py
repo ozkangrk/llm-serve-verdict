@@ -207,7 +207,8 @@ def test_attested_gate_hash_mismatch_counts_as_missing(tmp_path: Path) -> None:
     assert "REQUIRED_GATE_MISSING" in bundle["reason_codes"]
 
 
-def test_ttft_regression_reject(tmp_path: Path) -> None:
+@pytest.mark.parametrize("max_regression", [0.10, 0.0])
+def test_ttft_regression_reject(tmp_path: Path, max_regression: float) -> None:
     import yaml
 
     cand = make_dspark_ab_fixture(
@@ -234,7 +235,7 @@ def test_ttft_regression_reject(tmp_path: Path) -> None:
             "primary_metric": "decode_tokens_per_s",
             "workload": "edit_cold",
             "min_relative_improvement": 0.15,
-            "max_ttft_regression": 0.10,
+            "max_ttft_regression": max_regression,
             "required_gates": ["request_success"],
         },
         "claim_boundary": "fixture boundary",
