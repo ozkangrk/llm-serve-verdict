@@ -104,7 +104,10 @@ def build_demo(out_dir: Path) -> list[Path]:
     out.mkdir(parents=True, exist_ok=True)
     bundles: list[Path] = []
     for sub in (PROMOTE_DIR, REJECT_DIR):
-        bundles.append(_build_one(out / sub))
+        nested = _build_one(out / sub)
+        portable = out / f"{sub}.verdict.json"
+        portable.write_bytes(nested.read_bytes())
+        bundles.append(portable)
     return bundles
 
 

@@ -54,6 +54,16 @@ def test_demo_exit_0_creates_two_cases(demo_dir: Path) -> None:
     assert (demo_dir / REJECT_DIR / "bundle.json").is_file()
 
 
+def test_demo_root_lists_both_verdicts(demo_dir: Path) -> None:
+    r = run_cli("list", str(demo_dir), "--json")
+    assert r.returncode == 0, r.stderr
+    payload = json.loads(r.stdout)
+    assert {row["case_id"] for row in payload["verdicts"]} == {
+        "demo-promote",
+        "demo-reject",
+    }
+
+
 def test_demo_promote_bundle_is_promote(demo_dir: Path) -> None:
     doc = json.loads((demo_dir / PROMOTE_DIR / "bundle.json").read_text())
     assert doc["verdict"] == "PROMOTE"
