@@ -1,0 +1,94 @@
+name: Bug report
+description: Report a defect in Serving Verdict (wrong verdict, crash, loader/loader, CLI, or server misbehavior)
+title: "[bug]: "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report one defect. If the issue is a **security concern**, do not use this
+        form — see [SECURITY.md](SECURITY.md). If you want to add support for a new
+        benchmark schema, use the **Adapter request** form instead.
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Confirm this is not a security issue
+      options:
+        - label: I have read SECURITY.md and this is not a vulnerability report
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected versus what actually happened.
+      placeholder: |
+        I expected ... but got ...
+        A verdict is a claim about bound evidence. State whether the verdict, the
+        reason codes, the exit code, or the output shape was unexpected.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: The exact commands you ran, in order.
+      render: shell
+      placeholder: |
+        # e.g.
+        # uv sync --extra dev
+        # uv run serving-verdict import-case my-case.yaml --out /tmp/case.verdict.json
+        # uv run serving-verdict verify /tmp/case.verdict.json
+    validations:
+      required: true
+  - type: textarea
+    id: case-config
+    attributes:
+      label: Case config / evidence (redacted)
+      description: |
+        Paste the case.yaml (redact source_root if it contains anything sensitive;
+        keep the sha256 pins) and, if possible, the bound artifact files. A bug
+        report without a way to reproduce the bound evidence is hard to act on.
+        If the bug is in the bundled fixtures, say so.
+      render: yaml
+    validations:
+      required: false
+  - type: textarea
+    id: output
+    attributes:
+      label: Actual output
+      description: Full stderr/stdout and exit code. Use --json where available.
+      render: shell
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Serving Verdict version
+      description: Output of `uv run python -c "import serving_verdict; print(serving_verdict.__version__)"`
+      placeholder: 0.2.0
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: v0.2 is tested on Linux and macOS only.
+      placeholder: Linux (6.17.0)
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything else that helps. Do not include credentials or secrets.
+    validations:
+      required: false

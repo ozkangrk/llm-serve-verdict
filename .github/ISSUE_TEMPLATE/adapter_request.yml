@@ -1,0 +1,78 @@
+name: Adapter request
+description: Request support for a new benchmark artifact schema (adapters are additive and spec'd before code)
+title: "[adapter]: "
+labels: ["enhancement", "adapter", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Adapters are how new benchmark schemas become first-class evidence. They are
+        additive: an unknown schema stays `UNSUPPORTED` until an adapter lands.
+        Before any code, we need the schema spec'd below so the adapter and its
+        tests can be reviewed against a real contract.
+  - type: textarea
+    id: schema
+    attributes:
+      label: Schema identifier
+      description: The exact schema_version string the artifacts carry.
+      placeholder: "qwen38.my-benchmark.v1"
+    validations:
+      required: true
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Sample artifacts
+      description: |
+        Links to one representative baseline and one candidate artifact (or a
+        minimized version with the same shape). If they cannot be shared, describe
+        the full JSON structure field by field.
+    validations:
+      required: true
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Metrics and semantics
+      description: |
+        For each metric the adapter should extract: id, unit, direction
+        (higher_better / lower_better), and how it is computed (median? mean?
+        group aggregate?). Values must be comparable to the registry metrics or
+        explicitly new; no silent conversion between decode/e2e/aggregate.
+    validations:
+      required: true
+  - type: textarea
+    id: gates
+    attributes:
+      label: Machine-measured gates
+      description: |
+        Which gates (request_success, process_stability, ...) are measured by the
+        artifact itself, and how their pass/fail is encoded. Gates the artifact
+        does not measure will need operator attestation.
+    validations:
+      required: false
+  - type: textarea
+    id: procedure
+    attributes:
+      label: Procedure / workload dimensions
+      description: |
+        Concurrency, output budget, thinking mode, warm/cold, aggregation — the
+        comparability dimensions for this protocol.
+    validations:
+      required: false
+  - type: textarea
+    id: plan
+    attributes:
+      label: Proposed implementation plan
+      description: |
+        Optional. Suggested adapter module layout, test fixtures, and edge cases
+        (non-finite values, missing fields, unknown schema strings).
+    validations:
+      required: false
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: I am willing to help implement this
+      options:
+        - label: I can contribute the adapter + tests once the spec is agreed
+        - label: I can only contribute sample artifacts / feedback

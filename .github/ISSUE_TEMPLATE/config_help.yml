@@ -1,0 +1,64 @@
+name: Configuration / case-config help
+description: Help authoring a case.yaml, binding evidence, or understanding a verdict's reason codes
+title: "[config]: "
+labels: ["question", "config", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For help with case configs, evidence binding, or interpreting a verdict.
+        A `REJECT` or `INCONCLUSIVE` is usually the tool working correctly — the
+        goal here is to explain *why*, not to change the verdict.
+  - type: dropdown
+    id: topic
+    attributes:
+      label: What do you need help with?
+      options:
+        - Authoring a new case.yaml
+        - Binding source_root / sha256 pins
+        - Understanding a reason code
+        - Choosing required_gates / thresholds
+        - Using the demo command
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to decide? What evidence do you have?
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Case config (redacted)
+      description: Paste your case.yaml. Redact source_root if needed; keep sha256 pins.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: verdict
+    attributes:
+      label: Verdict / reason codes observed
+      description: |
+        The verdict and reason_codes from `serving-verdict show BUNDLE.json`,
+        or the exact CLI error and exit code.
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    id: question
+    attributes:
+      label: Specific question
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Serving Verdict version
+      placeholder: 0.2.0
+    validations:
+      required: true

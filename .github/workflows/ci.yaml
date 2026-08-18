@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.12"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7"
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python }}
+        run: uv python install ${{ matrix.python }}
+
+      - name: Create environment (uv)
+        run: uv sync --frozen --python ${{ matrix.python }}
+
+      - name: Run test suite (pytest)
+        run: uv run --python ${{ matrix.python }} pytest -q
+
+      - name: Lint (ruff)
+        run: uv run --python ${{ matrix.python }} ruff check src tests
+
+      - name: Type check (mypy)
+        run: uv run --python ${{ matrix.python }} mypy src
+
+      - name: Build distributions (sdist + wheel)
+        run: uv build
+
+      - name: Verify built wheel imports
+        run: |
+          uv venv /tmp/wheel-venv --python ${{ matrix.python }}
+          uv pip install --python /tmp/wheel-venv/bin/python dist/*.whl
+          /tmp/wheel-venv/bin/python -c "import serving_verdict; print(serving_verdict.__version__)"

@@ -4,18 +4,44 @@ build-backend = "hatchling.build"
 
 [project]
 name = "serving-verdict"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first, evidence-driven PROMOTE/REJECT/INCONCLUSIVE decisions for LLM serving changes"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Inference Engineering Studio" }]
+keywords = [
+    "inference-serving",
+    "benchmarking",
+    "reproducibility",
+    "decision-gates",
+    "llm-ops",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: System :: Monitoring",
+]
 dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
     "pyyaml>=6.0",
     "pydantic>=2.6",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ozkangrk/serving-verdict"
+Repository = "https://github.com/ozkangrk/serving-verdict"
+Issues = "https://github.com/ozkangrk/serving-verdict/issues"
 
 [project.optional-dependencies]
 dev = [

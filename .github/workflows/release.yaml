@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Create environment (uv)
+        run: uv sync --frozen --python 3.12
+
+      - name: Verify tag matches pyproject version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::tag v$tag does not match pyproject version $version"
+            exit 1
+          fi
+          echo "tag/version match: v$tag"
+
+      - name: Run test suite (pytest)
+        run: uv run --python 3.12 pytest -q
+
+      - name: Lint (ruff)
+        run: uv run --python 3.12 ruff check src tests
+
+      - name: Type check (mypy)
+        run: uv run --python 3.12 mypy src
+
+      - name: Build distributions (sdist + wheel)
+        run: uv build
+
+      - name: Verify built wheel imports
+        run: |
+          uv venv /tmp/wheel-venv --python 3.12
+          uv pip install --python /tmp/wheel-venv/bin/python dist/*.whl
+          /tmp/wheel-venv/bin/python -c "import serving_verdict; print(serving_verdict.__version__)"
+
+      - name: Verify both artifacts were produced
+        run: |
+          ls dist/*.whl dist/*.tar.gz
+          test "$(ls dist/*.whl)" != ""
+          test "$(ls dist/*.tar.gz)" != ""
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.ref_name }}
+          path: dist/
+
+  publish:
+    name: Create GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ github.ref_name }}
+          path: dist/
+
+      - name: Create GitHub release with assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true

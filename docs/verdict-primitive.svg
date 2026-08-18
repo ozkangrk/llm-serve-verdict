@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="430" viewBox="0 0 1180 430" role="img" aria-label="Verdict primitive: one decision, three first-class outcomes">
+  <style>
+    text { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; fill: #e2e8f0; }
+    .title { font-size: 15px; font-weight: 700; fill: #f1f5f9; }
+    .sub { font-size: 10px; fill: #94a3b8; }
+    .name { font-size: 14px; font-weight: 700; }
+    .lbl { font-size: 10px; fill: #cbd5e1; }
+    .tiny { font-size: 9px; fill: #64748b; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+
+  <rect width="1180" height="430" fill="#020617"/>
+  <rect width="1180" height="430" fill="url(#grid)"/>
+
+  <!-- arrows: left to right, drawn before boxes -->
+  <line x1="380" y1="150" x2="470" y2="150" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="380" y1="240" x2="470" y2="240" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="380" y1="330" x2="470" y2="330" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- left: bound evidence -->
+  <rect x="40" y="60" width="340" height="330" rx="12" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="60" y="88" class="sub">bound evidence + operator policy (one machine, one source root)</text>
+
+  <rect x="70" y="120" width="280" height="60" rx="6" fill="#0f172a"/>
+  <rect x="70" y="120" width="280" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="86" y="145" class="name">case.yaml</text>
+  <text x="86" y="163" class="lbl">source root + SHA-256 pins + gate policy</text>
+
+  <rect x="70" y="210" width="280" height="60" rx="6" fill="#0f172a"/>
+  <rect x="70" y="210" width="280" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="86" y="235" class="name">artifact A (baseline)</text>
+  <text x="86" y="253" class="lbl">sha256-pinned, loaded path-safe, never executed</text>
+
+  <rect x="70" y="300" width="280" height="60" rx="6" fill="#0f172a"/>
+  <rect x="70" y="300" width="280" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="86" y="325" class="name">artifact B (candidate)</text>
+  <text x="86" y="343" class="lbl">sha256-pinned, loaded path-safe, never executed</text>
+
+  <!-- middle: engine -->
+  <rect x="480" y="170" width="240" height="140" rx="6" fill="#0f172a"/>
+  <rect x="480" y="170" width="240" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text x="498" y="198" class="name">gate engine</text>
+  <text x="498" y="216" class="lbl">deterministic rules, fixed order</text>
+  <text x="498" y="234" class="lbl">no LLM, no opinion, no override</text>
+  <text x="498" y="260" class="tiny">comparability → hard gates → missing gates</text>
+  <text x="498" y="276" class="tiny">→ TTFT regression → effect → promote</text>
+
+  <!-- right: three equal outcomes -->
+  <!-- PROMOTE -->
+  <rect x="790" y="70" width="350" height="90" rx="6" fill="#0f172a"/>
+  <rect x="790" y="70" width="350" height="90" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text x="810" y="100" class="name" fill="#34d399">PROMOTE</text>
+  <text x="810" y="120" class="lbl">all required gates pass AND the primary effect</text>
+  <text x="810" y="136" class="lbl">clears the policy threshold (direction-aware)</text>
+  <text x="810" y="152" class="tiny">reason codes: PRIMARY_EFFECT_PASSED, ALL_REQUIRED_GATES_PASSED</text>
+
+  <!-- REJECT -->
+  <rect x="790" y="185" width="350" height="90" rx="6" fill="#0f172a"/>
+  <rect x="790" y="185" width="350" height="90" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+  <text x="810" y="215" class="name" fill="#fb7185">REJECT</text>
+  <text x="810" y="235" class="lbl">a required gate fails, or TTFT regresses, or the</text>
+  <text x="810" y="251" class="lbl">effect is below threshold — regardless of other wins</text>
+  <text x="810" y="267" class="tiny">reason codes: HARD_GATE_FAILED, TTFT_REGRESSION, INSUFFICIENT_EFFECT</text>
+
+  <!-- INCONCLUSIVE -->
+  <rect x="790" y="300" width="350" height="90" rx="6" fill="#0f172a"/>
+  <rect x="790" y="300" width="350" height="90" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+  <text x="810" y="330" class="name" fill="#fbbf24">INCONCLUSIVE</text>
+  <text x="810" y="350" class="lbl">evidence unavailable, hash mismatch, unsupported</text>
+  <text x="810" y="366" class="lbl">schema, metrics not comparable, or a gate missing</text>
+  <text x="810" y="382" class="tiny">reason codes: EVIDENCE_UNAVAILABLE, UNSUPPORTED_SCHEMA, REQUIRED_GATE_MISSING, …</text>
+
+  <line x1="720" y1="220" x2="780" y2="115" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="720" y1="240" x2="780" y2="230" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="720" y1="260" x2="780" y2="345" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- footer -->
+  <text x="40" y="418" class="tiny">every outcome is a tamper-evident bundle: canonical-JSON digest over the payload; REJECT and INCONCLUSIVE verify exactly like PROMOTE.</text>
+</svg>

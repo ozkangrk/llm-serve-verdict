@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="560" viewBox="0 0 1560 560" role="img" aria-label="Serving Verdict architecture: case policy and hash to path-safe loader to schema adapter to metric semantics to gate engine to digest bundle to loopback UI">
+  <style>
+    text { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; fill: #e2e8f0; }
+    .title { font-size: 16px; font-weight: 700; fill: #f1f5f9; }
+    .sub { font-size: 10px; fill: #94a3b8; }
+    .name { font-size: 13px; font-weight: 700; }
+    .lbl { font-size: 9.5px; fill: #cbd5e1; }
+    .tiny { font-size: 8.5px; fill: #64748b; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+
+  <rect width="1560" height="560" fill="#020617"/>
+  <rect width="1560" height="560" fill="url(#grid)"/>
+
+  <text x="40" y="40" class="title">Serving Verdict — v0.2 real flow</text>
+  <text x="40" y="60" class="sub">the only path to a verdict: anything skipped cannot reach the gate engine; anything un-emitted cannot be served</text>
+
+  <!-- arrows first (z-order behind boxes) -->
+  <line x1="250" y1="200" x2="286" y2="200" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="466" y1="200" x2="502" y2="200" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="682" y1="200" x2="718" y2="200" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="898" y1="200" x2="934" y2="200" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="1114" y1="200" x2="1150" y2="200" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="1330" y1="200" x2="1366" y2="200" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 1. case policy + hash -->
+  <rect x="40" y="120" width="210" height="160" rx="6" fill="#0f172a"/>
+  <rect x="40" y="120" width="210" height="160" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="56" y="148" class="name">case policy + hash</text>
+  <text x="56" y="168" class="lbl">operator-authored YAML</text>
+  <text x="56" y="184" class="lbl">one approved source root</text>
+  <text x="56" y="200" class="lbl">source-relative artifact paths</text>
+  <text x="56" y="216" class="lbl">SHA-256 pins per artifact</text>
+  <text x="56" y="232" class="lbl">primary metric, workload,</text>
+  <text x="56" y="248" class="lbl">thresholds, required gates</text>
+  <text x="56" y="268" class="tiny">claim_boundary recorded in bundle</text>
+
+  <!-- 2. path-safe loader -->
+  <rect x="290" y="120" width="176" height="160" rx="6" fill="#0f172a"/>
+  <rect x="290" y="120" width="176" height="160" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+  <text x="306" y="148" class="name">path-safe loader</text>
+  <text x="306" y="168" class="lbl">canonicalizes the root</text>
+  <text x="306" y="184" class="lbl">rejects: absolute paths,</text>
+  <text x="306" y="200" class="lbl">.. traversal, symlink escape,</text>
+  <text x="306" y="216" class="lbl">special files, &gt;20 MiB</text>
+  <text x="306" y="232" class="lbl">verifies expected SHA-256</text>
+  <text x="306" y="268" class="tiny">never executes content; read-only</text>
+
+  <!-- 3. schema adapter -->
+  <rect x="506" y="120" width="176" height="160" rx="6" fill="#0f172a"/>
+  <rect x="506" y="120" width="176" height="160" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="522" y="148" class="name">schema adapter</text>
+  <text x="522" y="168" class="lbl">qwen38.dspark-ab.v1</text>
+  <text x="522" y="184" class="lbl">qwen38.sglang-vllm-ab.v1</text>
+  <text x="522" y="200" class="lbl">per-workload samples +</text>
+  <text x="522" y="216" class="lbl">machine-measured gates</text>
+  <text x="522" y="268" class="tiny">unknown schema → UNSUPPORTED</text>
+
+  <!-- 4. metric semantics -->
+  <rect x="722" y="120" width="176" height="160" rx="6" fill="#0f172a"/>
+  <rect x="722" y="120" width="176" height="160" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="738" y="148" class="name">metric semantics</text>
+  <text x="738" y="168" class="lbl">fixed registry, 5 metrics:</text>
+  <text x="738" y="184" class="lbl">decode / e2e / aggregate tps,</text>
+  <text x="738" y="200" class="lbl">ttft_s, api_latency_s</text>
+  <text x="738" y="216" class="lbl">comparable only when every</text>
+  <text x="738" y="232" class="lbl">dimension matches</text>
+  <text x="738" y="268" class="tiny">no auto-conversion between tps kinds</text>
+
+  <!-- 5. gate engine -->
+  <rect x="938" y="120" width="176" height="160" rx="6" fill="#0f172a"/>
+  <rect x="938" y="120" width="176" height="160" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text x="954" y="148" class="name">gate engine</text>
+  <text x="954" y="168" class="lbl">deterministic, fixed order:</text>
+  <text x="954" y="184" class="lbl">1 comparability</text>
+  <text x="954" y="200" class="lbl">2 hard gates (fail → REJECT)</text>
+  <text x="954" y="216" class="lbl">3 missing gates</text>
+  <text x="954" y="232" class="lbl">4 TTFT regression</text>
+  <text x="954" y="248" class="lbl">5 effect threshold → 6 PROMOTE</text>
+  <text x="954" y="268" class="tiny">pure function; no LLM, no override</text>
+
+  <!-- 6. digest bundle -->
+  <rect x="1154" y="120" width="176" height="160" rx="6" fill="#0f172a"/>
+  <rect x="1154" y="120" width="176" height="160" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+  <text x="1170" y="148" class="name">digest bundle</text>
+  <text x="1170" y="168" class="lbl">verdict + reason codes,</text>
+  <text x="1170" y="184" class="lbl">comparisons, gate evidence,</text>
+  <text x="1170" y="200" class="lbl">pinned artifact refs</text>
+  <text x="1170" y="216" class="lbl">canonical-JSON digest over</text>
+  <text x="1170" y="232" class="lbl">payload (excl. created_at)</text>
+  <text x="1170" y="268" class="tiny">tamper-evident; verify offline</text>
+
+  <!-- 7. loopback UI -->
+  <rect x="1370" y="120" width="150" height="160" rx="6" fill="#0f172a"/>
+  <rect x="1370" y="120" width="150" height="160" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="1386" y="148" class="name">loopback UI</text>
+  <text x="1386" y="168" class="lbl">127.0.0.1 only</text>
+  <text x="1386" y="184" class="lbl">read-only REST +</text>
+  <text x="1386" y="200" class="lbl">offline HTML/JS/CSS</text>
+  <text x="1386" y="216" class="lbl">no live probing</text>
+  <text x="1386" y="268" class="tiny">port released on SIGTERM</text>
+
+  <!-- fail-closed notes below the pipeline -->
+  <rect x="40" y="340" width="720" height="150" rx="12" fill="none" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="60" y="368" class="sub" fill="#fb7185">fail-closed rules (nothing unverified reaches a verdict or the UI)</text>
+  <text x="60" y="392" class="lbl">loader rejects / hash mismatch / unavailable file → INCONCLUSIVE bundle (EVIDENCE_UNAVAILABLE, EVIDENCE_HASH_MISMATCH)</text>
+  <text x="60" y="412" class="lbl">unknown schema → UNSUPPORTED, indexed; cannot produce a decision</text>
+  <text x="60" y="432" class="lbl">metrics not comparable under identical dimensions → INCONCLUSIVE (METRIC_NOT_COMPARABLE)</text>
+  <text x="60" y="452" class="lbl">required gate missing or unverifiable attestation → INCONCLUSIVE (REQUIRED_GATE_MISSING)</text>
+  <text x="60" y="472" class="lbl">operator attestation counts only when its source file verifies under its own SHA-256 pin</text>
+
+  <rect x="790" y="340" width="730" height="150" rx="12" fill="none" stroke="#22d3ee" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="810" y="368" class="sub" fill="#22d3ee">bundle lifecycle after emission</text>
+  <text x="810" y="392" class="lbl">verify BUNDLE.json → recomputes the canonical digest; mismatch → exit 4, bundle rejected</text>
+  <text x="810" y="412" class="lbl">list DATA_DIR → tampered / corrupt bundles are skipped, never indexed</text>
+  <text x="810" y="432" class="lbl">serve --data-dir → UI index contains only bundles that pass integrity checks</text>
+  <text x="810" y="452" class="lbl">a REJECT or INCONCLUSIVE is a valid, first-class artifact — same shape, same verification as a PROMOTE</text>
+
+  <text x="40" y="535" class="tiny">source: src/serving_verdict/{caseconfig,evidence,adapters,metrics,engine,canonical,server}.py — the diagram describes the implemented pipeline, not a target architecture</text>
+</svg>

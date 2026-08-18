@@ -1,0 +1,134 @@
+# PyPI publish — guarded and manual by design.
+#
+# This workflow NEVER runs on push/pull_request. It is triggered only:
+#   1. manually from the Actions tab ("Run workflow"), or
+#   2. by a push to a v* tag, and only if the repository is configured for
+#      trusted publishing (see steps below for what that requires).
+#
+# Trusted publishing setup (owner must do this once, in the PyPI UI):
+#   1. Create a publishing pipeline for `serving-verdict` in the PyPI account.
+#   2. Configure a GitHub OIDC identity:
+#        issuer:    https://token.actions.githubusercontent.com
+#        subject:   repository:ozkangrk/serving-verdict
+#   3. In GitHub repo Settings -> Developer settings -> OIDC, add the PyPI
+#      audience:  https://pypi.org
+#   Once that exists, the `publish` job below needs NO secrets: the
+#      `pyproject.toml` + `version` gates plus the tag check are the only
+#      guards, and the OIDC token is issued per-run.
+#
+# Until trusted publishing is configured, the publish step fails fast with a
+# clear error instead of silently doing nothing — and no workflow secrets are
+# required or referenced anywhere in this repository.
+
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (must match pyproject.toml exactly, e.g. 0.2.0)"
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write # only needed for trusted publishing; harmless otherwise
+
+concurrency:
+  group: pypi-publish
+  cancel-in-progress: false
+
+jobs:
+  gates:
+    name: Pre-publish gates
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Create environment (uv)
+        run: uv sync --frozen --python 3.12
+
+      - name: Determine the version to publish
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            version="${{ github.event.inputs.version }}"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "manual dispatch: publishing version $version"
+          else
+            version="${GITHUB_REF_NAME#v}"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "tag trigger: publishing version $version"
+          fi
+
+      - name: Verify version matches pyproject.toml
+        run: |
+          version="$([ -n "${{ github.event.inputs.version }}" ] && echo "${{ github.event.inputs.version }}" || echo "${GITHUB_REF_NAME#v}")"
+          actual="$(uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          if [ "$version" != "$actual" ]; then
+            echo "::error::requested version $version does not match pyproject.toml ($actual)"
+            exit 1
+          fi
+          echo "version gate passed: $version"
+
+      - name: Verify clean working tree
+        run: git diff --exit-code HEAD
+
+      - name: Run test suite (pytest)
+        run: uv run --python 3.12 pytest -q
+
+      - name: Lint (ruff)
+        run: uv run --python 3.12 ruff check src tests
+
+      - name: Type check (mypy)
+        run: uv run --python 3.12 mypy src
+
+      - name: Build distributions
+        run: uv build
+
+      - name: Verify built wheel imports
+        run: |
+          uv venv /tmp/wheel-venv --python 3.12
+          uv pip install --python /tmp/wheel-venv/bin/python dist/*.whl
+          /tmp/wheel-venv/bin/python -c "import serving_verdict; print(serving_verdict.__version__)"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-publish
+          path: dist/
+
+  publish:
+    name: Publish to PyPI (trusted publishing)
+    needs: gates
+    if: needs.gates.result == 'success'
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-publish
+          path: dist/
+
+      # No `password` input on purpose: pypa/gh-action-pypi-publish uses
+      # GitHub's built-in PyPI trusted publishing (OIDC) when no password
+      # is given. If trusted publishing is not yet configured, it fails
+      # with a clear error and the release can be retried after setup.
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
