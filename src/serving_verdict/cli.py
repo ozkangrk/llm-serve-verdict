@@ -139,7 +139,7 @@ def _archive_evidence(
 
     cfg = load_case_config(case_path)
     root = _resolve_source_root(Path(case_path), cfg.source_root)
-    if root is None:
+    if root is None or not root.is_dir():
         raise ArchiveError("case source root does not exist; cannot archive evidence")
     loader = EvidenceLoader(root)
     store = ArchiveStore(archive_dir)

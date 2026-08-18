@@ -107,6 +107,45 @@ def test_verify_archive_survives_source_deletion(tmp_path: Path) -> None:
         assert body["artifacts_verified"] == 3
 
 
+def test_archive_missing_relative_root_is_clean_exit_2(tmp_path: Path) -> None:
+    case_dir = tmp_path / "case"
+    case_dir.mkdir()
+    case = case_dir / "case.yaml"
+    case.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": "serving-verdict.case.v0.1",
+                "id": "missing-relative-archive-root",
+                "source_root": "missing-evidence",
+                "baseline": {"artifact": "base.json", "sha256": "0" * 64},
+                "candidate": {"artifact": "cand.json", "sha256": "1" * 64},
+                "policy": {
+                    "primary_metric": "decode_tokens_per_s",
+                    "workload": "edit_cold",
+                    "min_relative_improvement": 0.15,
+                    "max_ttft_regression": 0.10,
+                    "required_gates": ["request_success"],
+                },
+                "claim_boundary": "missing archive source root",
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    out = out_dir / "bundle.json"
+    archive = tmp_path / "store"
+    result = run_cli(
+        "import-case", str(case), "--out", str(out), "--archive", str(archive)
+    )
+    assert result.returncode == 2
+    assert "source root does not exist" in result.stderr.lower()
+    assert "traceback" not in result.stderr.lower()
+    assert not out.exists()
+    assert not (out_dir / "artifacts.json").exists()
+
+
 def test_verify_archive_uses_manifest_bound_external_store(tmp_path: Path) -> None:
     case, _ = _build_case(tmp_path)
     bundle_dir = tmp_path / "bundles"
