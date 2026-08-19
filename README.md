@@ -132,7 +132,10 @@ other: they are the same kind of object with different verdicts.
 - **Inference engineering toolkit** — quick benchmark, Doctor/Capacity, Config
   Advisor, compare/sweep/Pareto, privacy-safe replay and CI regression gates.
 
-[Open the complete v0.3 architecture diagram](docs/architecture-v0.3.html).
+![Architecture v0.3](docs/architecture-v0.3.svg)
+
+An interactive version with summary cards is available in
+[architecture-v0.3.html](docs/architecture-v0.3.html).
 
 The evidence/verdict compatibility core remains:
 
