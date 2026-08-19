@@ -17,8 +17,8 @@ import random
 from dataclasses import dataclass
 from typing import Any
 
-from serving_verdict.experiment_artifact import seal_artifact, verify_artifact
 from serving_verdict.errors import PlanError
+from serving_verdict.experiment_artifact import seal_artifact, verify_artifact
 from serving_verdict.summary import Summary
 
 SWEEP_SCHEMA_VERSION = "serving-verdict.sweep.v0.1"

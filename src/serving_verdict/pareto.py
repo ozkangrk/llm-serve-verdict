@@ -30,8 +30,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from serving_verdict.experiment_artifact import seal_artifact, verify_artifact
 from serving_verdict.errors import PlanError
+from serving_verdict.experiment_artifact import seal_artifact, verify_artifact
 from serving_verdict.summary import UNMEASURABLE
 
 PARETO_SCHEMA_VERSION = "serving-verdict.pareto.v0.1"
