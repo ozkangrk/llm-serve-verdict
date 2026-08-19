@@ -226,12 +226,37 @@ table.metrics th[scope="row"] {
 .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 18px;
   border-top: 1px solid var(--line); }
 
+/* automation wizard */
+.topnav { display: flex; gap: 8px; margin-left: auto; }
+.automation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.automation-grid label { display: block; color: var(--muted); font-size: 12px; margin: 12px 0 5px; }
+.automation-grid input {
+  box-sizing: border-box; width: 100%; min-height: 44px; border: 1px solid var(--line);
+  border-radius: 8px; padding: 9px 11px; color: var(--text); background: var(--bg);
+  font: inherit; overflow-wrap: anywhere;
+}
+.automation-grid .btn { margin-top: 14px; }
+.automation-status { font-size: 18px; font-weight: 700; margin: 10px 0 18px; }
+.automation-result {
+  max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+  font-size: 12px;
+}
+.capability-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.capability-cards > div { border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.capability-cards strong, .capability-cards span { display: block; }
+.capability-cards span { color: var(--muted); font-size: 12px; margin-top: 5px; }
+#nav-verdicts, #nav-automation, #auto-start, #auto-cancel, #auto-refresh { min-height: 44px; }
+
 /* ---------------------------------------------------------------- mobile */
 @media (max-width: 480px) {
   main { padding: 16px 12px 40px; }
   .cards { grid-template-columns: 1fr; }
   .verdict-panel { flex-direction: column; align-items: flex-start; gap: 10px; }
   .topbar { flex-direction: column; gap: 4px; }
+  .topnav { margin-left: 0; width: 100%; }
+  .topnav .btn { flex: 1; }
+  .automation-grid { grid-template-columns: 1fr; }
   /* tables become horizontally scrollable (no page overflow at 390px);
      the metric cards remain the primary mobile layout */
   .table-wrap { max-width: 100%; }

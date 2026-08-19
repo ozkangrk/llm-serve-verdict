@@ -25,12 +25,20 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, Response
 
+from serving_verdict.automation import AutomationError
+from serving_verdict.endpoint import (
+    EndpointConfig,
+    EndpointConfigError,
+    parse_endpoint_config,
+    resolve_api_key,
+)
 from serving_verdict.engine import BUNDLE_SCHEMA_VERSION, load_bundle, verify_bundle
 from serving_verdict.errors import IntegrityError, ServingVerdictError, UsageError
 from serving_verdict.metrics import registry as METRIC_REGISTRY
@@ -155,7 +163,13 @@ def _load_artifacts_manifest(data_dir: Path) -> dict[str, Any] | None:
     return doc
 
 
-def create_app(host: str, port: int, data_dir: str | Path) -> FastAPI:
+def create_app(
+    host: str,
+    port: int,
+    data_dir: str | Path,
+    *,
+    automation_runner: Callable[[EndpointConfig, str], dict[str, Any]] | None = None,
+) -> FastAPI:
     """Build the read-only FastAPI app.
 
     Raises UsageError (exit 2) unless ``host`` is exactly the loopback bind.
@@ -166,7 +180,10 @@ def create_app(host: str, port: int, data_dir: str | Path) -> FastAPI:
         )
     data = Path(data_dir).resolve()
 
-    app = FastAPI(title="Serving Verdict", version="0.2.0")
+    from serving_verdict.automation import JobManager, default_benchmark_runner
+
+    jobs = JobManager(automation_runner or default_benchmark_runner)
+    app = FastAPI(title="Serving Verdict", version="0.3.0")
 
     @app.exception_handler(HTTPException)
     async def _flat_http_error(_request: Any, exc: HTTPException) -> Any:
@@ -220,6 +237,36 @@ def create_app(host: str, port: int, data_dir: str | Path) -> FastAPI:
             "data_dir": str(data),
             "database": db,
         }
+
+    @app.get("/api/v1/automation/capabilities")
+    def automation_capabilities() -> dict[str, Any]:
+        return jobs.capabilities()
+
+    @app.post("/api/v1/automation/jobs", status_code=202)
+    def start_automation_job(payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            config = parse_endpoint_config(payload, allow_remote=False)
+            api_key = resolve_api_key(config)
+            job = jobs.start(config, api_key)
+        except EndpointConfigError as exc:
+            raise HTTPException(status_code=400, detail={"error": str(exc)}) from exc
+        except AutomationError as exc:
+            raise HTTPException(status_code=409, detail={"error": str(exc)}) from exc
+        return job.public_payload()
+
+    @app.get("/api/v1/automation/jobs/{job_id}")
+    def automation_job(job_id: str) -> dict[str, Any]:
+        try:
+            return jobs.get(job_id).public_payload()
+        except AutomationError as exc:
+            raise HTTPException(status_code=404, detail={"error": str(exc)}) from exc
+
+    @app.post("/api/v1/automation/jobs/{job_id}/cancel")
+    def cancel_automation_job(job_id: str) -> dict[str, Any]:
+        try:
+            return jobs.cancel(job_id).public_payload()
+        except AutomationError as exc:
+            raise HTTPException(status_code=404, detail={"error": str(exc)}) from exc
 
     @app.get("/api/v1/verdicts")
     def verdicts() -> dict[str, Any]:

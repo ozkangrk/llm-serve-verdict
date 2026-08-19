@@ -80,14 +80,8 @@ def _validated_url(raw: str) -> tuple[str, bool]:
     return normalized, not _is_loopback(parsed.hostname)
 
 
-def load_endpoint_config(
-    path: str | Path, *, allow_remote: bool = False
-) -> EndpointConfig:
-    config_path = Path(path)
-    try:
-        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
-        raise EndpointConfigError("endpoint config could not be read") from exc
+def parse_endpoint_config(raw: object, *, allow_remote: bool = False) -> EndpointConfig:
+    """Validate a non-secret endpoint mapping supplied by CLI or local UI."""
     if not isinstance(raw, dict):
         raise EndpointConfigError("endpoint config must be a mapping")
     doc: dict[str, Any] = raw
@@ -117,6 +111,17 @@ def load_endpoint_config(
         api_key_env=api_key_env,
         remote=remote,
     )
+
+
+def load_endpoint_config(
+    path: str | Path, *, allow_remote: bool = False
+) -> EndpointConfig:
+    config_path = Path(path)
+    try:
+        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise EndpointConfigError("endpoint config could not be read") from exc
+    return parse_endpoint_config(raw, allow_remote=allow_remote)
 
 
 def resolve_api_key(config: EndpointConfig) -> str:

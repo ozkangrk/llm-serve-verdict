@@ -10,6 +10,10 @@
 <header class="topbar">
   <div class="brand"><span class="dot" aria-hidden="true"></span>Serving Verdict</div>
   <div class="topbar-sub">evidence-gated serving decisions &middot; read-only &middot; loopback</div>
+  <nav class="topnav" aria-label="Primary">
+    <button id="nav-verdicts" class="btn" type="button">Verdicts</button>
+    <button id="nav-automation" class="btn" type="button">Automation</button>
+  </nav>
 </header>
 
 <main>
@@ -121,11 +125,52 @@
       </section>
     </div>
   </section>
+
+  <!-- ===================== AUTOMATION WIZARD ===================== -->
+  <section id="automation-view" class="hidden" aria-labelledby="automation-heading">
+    <h1 id="automation-heading">Automation Wizard</h1>
+    <p class="muted">Connect a loopback OpenAI-compatible endpoint, run the frozen quick profile,
+      and receive a sealed artifact. API keys stay server-side in environment variables.</p>
+    <div class="automation-grid">
+      <section class="panel">
+        <h2>1. Connect</h2>
+        <label for="auto-endpoint-id">Endpoint ID</label>
+        <input id="auto-endpoint-id" value="local-runtime" autocomplete="off">
+        <label for="auto-base-url">Base URL</label>
+        <input id="auto-base-url" placeholder="loopback endpoint URL" autocomplete="off">
+        <label for="auto-model">Model</label>
+        <input id="auto-model" placeholder="served model ID" autocomplete="off">
+        <label for="auto-api-env">API key environment variable</label>
+        <input id="auto-api-env" value="SERVING_VERDICT_API_KEY" autocomplete="off">
+        <p class="muted">The secret value is never sent by this browser.</p>
+        <button id="auto-start" class="btn primary" type="button">Run quick benchmark</button>
+        <button id="auto-cancel" class="btn hidden" type="button">Request cancel</button>
+      </section>
+      <section class="panel" aria-live="polite">
+        <h2>2. Progress</h2>
+        <div id="auto-status" class="automation-status">Idle</div>
+        <div id="auto-error" class="error hidden"></div>
+        <button id="auto-refresh" class="btn hidden" type="button">Refresh status</button>
+        <h2>3. Result</h2>
+        <div id="auto-result-empty" class="muted">No benchmark result yet.</div>
+        <pre id="auto-result" class="automation-result hidden"></pre>
+      </section>
+    </div>
+    <section class="panel">
+      <h2>Inference engineering capabilities</h2>
+      <div class="capability-cards">
+        <div><strong>Quick benchmark</strong><span>TTFT, decode, concurrency, tool and quality gates</span></div>
+        <div><strong>Serving Doctor</strong><span>Hardware and capacity diagnostics available through the local package</span></div>
+        <div><strong>Config Advisor</strong><span>Rule-based recommendations and inert rollback recipes</span></div>
+        <div><strong>Replay gate</strong><span>Privacy-safe workload regression contracts for CI</span></div>
+      </div>
+    </section>
+  </section>
 </main>
 
 <div id="copy-live" class="visually-hidden" role="status" aria-live="polite"></div>
 
-<footer class="footer">Serving Verdict v0.2 &middot; deterministic engine, no LLM opinion &middot; offline UI</footer>
+<footer class="footer">Serving Verdict v0.3 &middot; deterministic engine, no LLM opinion &middot; loopback automation</footer>
 <script src="/ui.js"></script>
 </body>
 </html>
