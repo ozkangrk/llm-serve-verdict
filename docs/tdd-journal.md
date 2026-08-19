@@ -1,5 +1,8 @@
 # TDD Journal — Serving Verdict MVP v0.1
 
+> Historical MVP journal; retained as provenance, not as the current feature
+> list. See `CHANGELOG.md` and `PRODUCT_V1_SPEC.md` for v0.3.
+
 Strict TDD: tests written first (RED, with the expected failure reason), then
 minimal implementation (GREEN). All commands were actually run.
 

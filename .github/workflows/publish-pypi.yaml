@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish (must match pyproject.toml exactly, e.g. 0.2.0)"
+        description: "Version to publish (must match pyproject.toml exactly, e.g. 0.3.0)"
         required: true
         type: string
   push:

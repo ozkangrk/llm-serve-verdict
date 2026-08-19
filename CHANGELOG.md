@@ -1,68 +1,86 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
+All notable changes to this project are documented in this file. The format is
+based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
+project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [Unreleased]
 
-## [Unreleased] — v0.2
+No unreleased user-facing changes.
+
+## [0.3.0] — 2026-08-19
 
 ### Added
 
-- **Open-source release surface** for v0.2:
-  - `README.md` rewritten with a portable 30-second demo, the verdict
-    primitive diagram, and an honest test matrix / claim boundaries.
-  - Dark-theme architecture diagram (`docs/architecture-v0.2.svg`) of the
-    implemented flow: case policy + hash → path-safe loader → schema adapter →
-    metric semantics → gate engine → digest bundle → loopback UI.
-  - Verdict primitive diagram (`docs/verdict-primitive.svg`); `PROMOTE` and
-    `REJECT` are documented as first-class, equally-visible outcomes.
-- **CI** (`.github/workflows/ci.yaml`): Linux + macOS × Python 3.11 + 3.12
-  running pytest, ruff, mypy, and a distribution build (practical `uv` setup:
-  `setup-uv` + `uv sync --frozen`).
-- **Release workflow** (`.github/workflows/release.yaml`): `v*` tag → version
-  match check → gates → build sdist + wheel → GitHub release with assets.
-- **PyPI publish** (`.github/workflows/publish-pypi.yaml`): manual
-  (`workflow_dispatch`) or tag-triggered, gated (version match, clean tree,
-  full test/lint/type/build gates), publishing via trusted publishing (OIDC) —
-  no workflow secrets.
-- `SECURITY.md` (supported versions, private reporting channel, in-scope
-  definition, invariants).
-- `CONTRIBUTING.md` (setup, ground rules, process).
-- `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1).
-- Issue templates: bug report, adapter request, configuration/reporting
-  guidance; pull request template (`.github/`).
-- `docs/release-checklist.md` (pre-tag, tag, post-release steps).
-- `pyproject.toml` project metadata for packaging: version `0.2.0`,
-  `keywords`, `classifiers`, `[project.urls]`, MIT license metadata.
+- Built-in OpenAI-compatible quick benchmark runner with frozen warmup, serial,
+  concurrency, arithmetic, structured tool-call, and quality-lite workloads.
+- Usage-backed TTFT, decode, end-to-end and shared-wall concurrency metrics;
+  missing usage is `UNMEASURABLE`, never estimated.
+- Credential-safe endpoint configuration and real preflight. API keys are read
+  from environment variables and excluded from artifacts, logs and UI payloads.
+- Serving Doctor and Capacity Planner for bounded hardware, model-memory,
+  KV-cache, context and concurrency diagnostics.
+- Deterministic Config Advisor with strict runtime flag allowlists, one-variable
+  experiment plans, inert launch argv and exact rollback recipes.
+- Baseline/candidate comparison, seeded sweep planning, constraint filtering and
+  deterministic Pareto frontiers with tamper-evident experiment artifacts.
+- Privacy-safe workload replay and CI regression gates. Raw prompts and executor
+  errors are not persisted in replay artifacts.
+- Loopback Automation Wizard with one bounded in-memory benchmark job, progress,
+  cooperative cancellation and result discard. Trial/data storage remains
+  read-only.
+- Desktop and 390 px mobile Automation Wizard screenshots.
 
 ### Changed
 
-- `README.md` "Quick start" replaced by a portable `demo`-based flow; the
-  broken absolute-path quickstart moved to an explicit **Advanced** section
-  with an honest note that those cases do not reproduce on other machines.
+- Package version is `0.3.0`.
+- README workflow, CLI/API reference, security boundaries and product scope now
+  cover built-in automation.
+- UI timestamps use real UTC getters instead of labeling local time as UTC.
 
-### Notes / claim boundaries
+### Verification
 
-- The `demo` command and fixture-portable behavior are provided by the v0.2
-  backend workstream; the README documents them as of this surface but CI for
-  `demo` is not yet run.
-- Windows is not tested or supported in v0.2.
-- No tag, no GitHub release, no PyPI publish, and no UI screenshots have been
-  cut for v0.2 yet — see `docs/release-checklist.md`.
+- Fresh clone: 619 tests, Ruff, mypy over 41 source files, sdist and wheel build.
+- GitHub CI passed on Ubuntu/macOS with Python 3.11/3.12 before and after merge.
+- Main merge commit: `4c78776d429512ea08d7f6863d4859de300f4ce2`.
 
-## [0.1.0] — MVP (v0.1)
+### Claim boundaries
+
+- The quick profile is a bounded benchmark, not a stress/load-testing platform.
+- Automation never starts, stops or reconfigures a runtime.
+- Cancellation is cooperative: an in-flight blocking HTTP call may finish, but
+  its result is discarded after cancellation is requested.
+- Windows remains untested. PyPI publication is not part of this release state.
+
+## [0.2.0] — 2026-08-18
 
 ### Added
 
-- Initial MVP: `import-case`, `verify`, `list`, `show`, `serve` CLI commands.
-- Path-safe evidence loader (canonical root, traversal/symlink/size guards,
-  SHA-256 pin verification).
-- Two artifact adapters: `qwen38.dspark-ab.v1`, `qwen38.sglang-vllm-ab.v1`.
-- Metric semantic registry (5 fixed-semantic metrics, strict comparability).
-- Deterministic decision engine (fixed rule order; PROMOTE/REJECT/
-  INCONCLUSIVE).
-- Tamper-evident bundles: canonical-JSON digest; offline `verify`.
-- Loopback-only (127.0.0.1) read-only FastAPI server + offline UI.
-- Test suite: 121 tests across unit, integration, and E2E (port release on
-  SIGTERM verified).
+- Portable two-case demo with first-class PROMOTE and REJECT outcomes.
+- Verdict-first responsive, self-contained UI and real desktop/mobile captures.
+- Append-only SQLite trial history, content-addressed archive and offline
+  verification.
+- Relative evidence roots without CWD fallback; external archive roots are
+  manifest-bound and verified.
+- Loopback read-only verdict/trial/artifact APIs, readiness endpoint and OSS
+  release surface: CI, security policy, contribution docs and issue templates.
+- Linux/macOS × Python 3.11/3.12 CI plus release and guarded PyPI workflows.
+
+### Release
+
+- GitHub Release: https://github.com/ozkangrk/serving-verdict/releases/tag/v0.2.0
+- Wheel, sdist and five verified UI screenshots are attached.
+- Independent fail-closed review closed all HIGH/MEDIUM findings before tag.
+- PyPI trusted publishing was not configured; `0.2.0` was not published there.
+
+## [0.1.0] — MVP
+
+### Added
+
+- Initial `import-case`, `verify`, `list`, `show`, and `serve` commands.
+- Path-safe evidence loader with traversal, symlink, special-file, size and
+  SHA-256 guards.
+- Two artifact adapters and a fixed-semantic metric registry.
+- Deterministic PROMOTE/REJECT/INCONCLUSIVE engine and tamper-evident bundles.
+- Loopback-only FastAPI server and self-contained UI.
+- 121 unit, integration and E2E tests.

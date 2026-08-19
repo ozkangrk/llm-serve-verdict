@@ -1,5 +1,10 @@
 # Serving Verdict MVP v0.1 — Normative Contract
 
+> **Historical compatibility contract.** This document remains authoritative
+> for v0.1 bundle/decision compatibility. The current v0.3 product surface and
+> automation boundaries are defined in `PRODUCT_V1_SPEC.md`, `README.md`, and
+> `SECURITY.md`.
+
 > This document narrows `PRODUCT_SPEC.md`. On conflict, this MVP contract wins.
 
 ## One-sentence product

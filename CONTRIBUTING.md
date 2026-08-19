@@ -48,7 +48,7 @@ All four gates must be green. The same matrix runs in CI
 
 ## Branching and commits
 
-- Branch from `main`, e.g. `v0.2/my-feature`.
+- Branch from `main`, e.g. `feature/short-description`.
 - Conventional commit prefixes help: `feat:`, `fix:`, `docs:`, `test:`,
   `ci:`, `chore:`.
 - Keep commits focused; squash noisy history before opening the PR.

@@ -4,10 +4,11 @@
 
 | Version | Supported |
 |---|---|
-| 0.2.x | ✅ |
+| 0.3.x | ✅ |
+| 0.2.x | ❌ (superseded) |
 | 0.1.x | ❌ (superseded) |
 
-Only the latest 0.2.x minor is supported. Older releases are not patched.
+Only the latest 0.3.x minor is supported. Older releases are not patched.
 
 ## Reporting a vulnerability
 
@@ -46,6 +47,11 @@ that *are* in scope:
   `verify` or appear in the loopback UI.
 - The loopback server binding to a non-loopback host, or accepting a
   user-supplied source root over HTTP.
+- An Automation endpoint accepting remote/credential-bearing URLs, exposing an
+  API-key value, writing benchmark state into the trial/data store, or allowing
+  unbounded concurrent jobs.
+- Raw replay prompts, tool arguments, credentials or remote error bodies
+  appearing in artifacts, API responses, logs or CI summaries.
 
 Things that are **not** vulnerabilities (by design):
 
@@ -64,8 +70,14 @@ tests (`tests/test_evidence_loader.py`, `tests/test_server.py`,
 - Never executes artifact content; never invokes a shell or Docker.
 - Canonicalizes the source root and rejects absolute child paths, `..`
   traversal, symlink escape, special files, and files >20 MiB.
-- Serves read-only over `127.0.0.1` only; any other host is rejected at
-  startup; no write verbs are exposed.
+- Serves over `127.0.0.1` only; any other host is rejected at startup. Bundle,
+  trial and artifact APIs are read-only. Automation POST routes create bounded
+  in-memory jobs only and never mutate the data directory or runtime.
+- Automation endpoint targets are loopback-only, credentials are environment-
+  only, and public job payloads never contain secret values or raw remote
+  errors. Cancellation is cooperative and discards any later result.
+- Replay artifacts retain keyed fingerprints and bounded measurements, not raw
+  message content.
 - Verdicts are a deterministic function of the bound evidence and case policy;
   no model participates and no flag can flip a `REJECT` to a `PROMOTE`.
 - Bundles that fail the canonical-digest check are never indexed or served.

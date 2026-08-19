@@ -1,75 +1,82 @@
-# Release checklist (v0.2)
+# Release checklist
 
-Checklist for cutting a tag and publishing a release. A release is done only
-when every box below is checked and the evidence is recorded (commit SHAs,
-CI run URLs) in the release notes.
+A tag/release is complete only when every applicable box is checked and the
+commit/tree hash plus CI URL are recorded in the release notes.
 
-## 0. Preconditions (before starting)
+## 0. Scope and claim boundary
 
-- [ ] The backend workstream has merged: `demo --out-dir DIR` runs both
-      bundled fixture cases portably; `list`/history and reindex behavior
-      are present and tested.
-- [ ] `serving-verdict demo --out-dir demo` then `serving-verdict list demo`
-      shows one `PROMOTE` and one `REJECT` bundle on a fresh clone.
-- [ ] No UI screenshot is committed until the UI is final; if screenshots are
-      added to the README, they are real captures of the released build.
+- [ ] `CHANGELOG.md` contains the target version and honest limitations.
+- [ ] README CLI/API/UI claims match the exact release tree.
+- [ ] Historical MVP/TDD documents are not presented as the current surface.
+- [ ] Real screenshots come from the exact release build; desktop and 390 px
+      mobile have no horizontal page overflow.
+- [ ] No claim says production-ready, deterministic model output, any-model, or
+      stress/load testing without linked evidence.
 
 ## 1. Code state
 
-- [ ] `pyproject.toml` version is the exact target version (e.g. `0.2.0`) —
-      the release workflow hard-fails on tag/version mismatch.
-- [ ] `CHANGELOG.md` has no open `Unreleased` items that are actually done;
-      the release entry is written with real, unexaggerated claims.
-- [ ] `git status` is clean; branch is up to date with `main`.
-- [ ] Working tree is clean (`git diff --exit-code` passes).
+- [ ] `pyproject.toml`, package `__version__`, wheel metadata and tag version are
+      identical (for example `0.3.0` / `v0.3.0`).
+- [ ] Working tree is clean and the release branch is based on current `main`.
+- [ ] Artifact schemas and old v0.1/v0.2 bundle verification remain compatible.
 
-## 2. Local gates (all must pass)
+## 2. Local and fresh-clone gates
 
 ```bash
-uv run pytest -q            # full test suite green
-uv run ruff check src tests # lint clean
-uv run mypy src             # type check clean
-uv build                    # sdist + wheel build
+uv sync --extra dev
+uv run pytest -q
+uv run ruff check src tests
+uv run mypy src
+uv build
 ```
 
-- [ ] All four pass locally, and the resulting wheel imports
-      (`serving_verdict.__version__` prints the target version).
-- [ ] `uv run serving-verdict demo --out-dir /tmp/sv-demo` works and both
-      bundles verify.
+- [ ] All gates pass in the working tree.
+- [ ] The same gates pass in a fresh clone.
+- [ ] The built wheel imports and its metadata version equals `__version__`.
+- [ ] Portable demo emits one PROMOTE and one REJECT; both verify offline.
+- [ ] Quick benchmark mock-HTTP E2E proves warmup exclusion, concurrency math,
+      failure classification, secret absence and artifact tamper detection.
+- [ ] Automation API tests prove loopback-only endpoint use, environment-only
+      secrets, bounded jobs, cancellation/result discard and no data-dir writes.
 
-## 3. CI
+## 3. Product E2E
 
-- [ ] Push to `main` and watch the CI matrix (Linux + macOS × 3.11 + 3.12):
-      pytest, ruff, mypy, build — all four green on all four legs.
-- [ ] Record the CI run URL for the release notes.
+- [ ] Run the Automation Wizard against an approved loopback endpoint.
+- [ ] Confirm endpoint preflight, quick benchmark phases, gates and sealed result.
+- [ ] Confirm Doctor/Capacity and Advisor/rollback artifacts on a real local
+      configuration; label unexercised runtime/model combinations `UNTESTED`.
+- [ ] Replay uses a privacy-reviewed local workload; raw prompts do not appear in
+      artifacts, logs, errors or GitHub summaries.
 
-## 4. Tag
+## 4. Review and CI
 
-- [ ] Create an annotated tag **exactly** `v<version>` (e.g. `v0.2.0`) on the
-      release commit, and push the tag.
-- [ ] The release workflow: version-match check passes → gates pass →
-      sdist + wheel built → GitHub release created with both artifacts.
-- [ ] Download the released wheel from the GitHub release and verify it
-      imports and prints the target version.
+- [ ] Independent fail-closed review confirms the exact tree hash.
+- [ ] No open HIGH/MEDIUM finding.
+- [ ] Pull-request CI passes Ubuntu/macOS × Python 3.11/3.12.
+- [ ] Merge commit main CI passes the same matrix.
 
-## 5. PyPI (only after the GitHub release is verified)
+## 5. Tag and GitHub Release
 
-- [ ] Trusted publishing is configured (PyPI pipeline + GitHub OIDC identity
-      for `repository:ozkangrk/serving-verdict`, audience `https://pypi.org`).
-- [ ] If using the `pypi` environment guard, the environment approval has
-      been granted.
-- [ ] `Publish to PyPI` workflow (manual dispatch with the exact version, or
-      tag-triggered) completes; `pip install serving-verdict==<version>`
-      resolves and imports.
-- [ ] If trusted publishing is **not** configured yet, do not force a manual
-      token publish as a shortcut — finish the OIDC setup instead.
+- [ ] Create and push annotated `v<version>` on the release commit.
+- [ ] Release workflow version check, tests, Ruff, mypy, build and wheel import
+      all pass.
+- [ ] GitHub Release includes wheel, sdist, release notes and real screenshots.
+- [ ] Download the released wheel and verify import/version independently.
 
-## 6. Post-release
+## 6. PyPI (optional and only after GitHub Release verification)
 
-- [ ] Move the changelog entry from `Unreleased` to the versioned entry.
-- [ ] Link the GitHub release from the README if a pinned "latest" link is
-      added.
-- [ ] Note anything that could not be verified in the release notes (e.g.
-      Windows) — no exaggerated claims.
-- [ ] Archive: record the release commit SHA, the CI run URL, and the PyPI
-      version in the release notes or a project note.
+- [ ] PyPI Trusted Publisher exists for owner `ozkangrk`, repository
+      `serving-verdict`, workflow `publish-pypi.yaml`, environment `pypi`.
+- [ ] GitHub `pypi` environment approvals are configured if required.
+- [ ] Publish workflow completes and `pip install serving-verdict==<version>`
+      resolves from PyPI.
+- [ ] If Trusted Publisher is absent, do not use a token shortcut; explicitly
+      document that PyPI was skipped.
+
+## 7. Post-release
+
+- [ ] Verify tag points to the intended commit and GitHub Release is public.
+- [ ] Record release URL, commit/tree hash, CI run and package SHA-256 values.
+- [ ] Move completed changelog items from `Unreleased` to the versioned entry.
+- [ ] Keep prior tags immutable; fix automation for the next patch release rather
+      than moving a published tag.

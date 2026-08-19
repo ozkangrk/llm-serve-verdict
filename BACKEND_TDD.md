@@ -1,5 +1,8 @@
 # Backend v0.2 TDD Evidence
 
+> Historical v0.2 RED/GREEN evidence. Current v0.3 verification is summarized
+> in `CHANGELOG.md` and enforced by the full repository test suite.
+
 ## Baseline
 
 - Existing v0.1 suite: 121 passing.

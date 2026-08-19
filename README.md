@@ -127,10 +127,16 @@ other: they are the same kind of object with different verdicts.
 - **Tamper-evident digest bundle** — canonical-JSON digest over the payload
   (excluding the volatile `created_at` and the digest field itself);
   re-verifyable offline.
-- **Loopback UI** — read-only FastAPI app on `127.0.0.1` with a self-contained
-  offline HTML/JS/CSS front end.
+- **Loopback product UI** — self-contained HTML/JS/CSS on `127.0.0.1`.
+  Evidence/trial APIs stay read-only; bounded automation jobs are ephemeral.
+- **Inference engineering toolkit** — quick benchmark, Doctor/Capacity, Config
+  Advisor, compare/sweep/Pareto, privacy-safe replay and CI regression gates.
 
-![Architecture](docs/architecture-v0.2.svg)
+[Open the complete v0.3 architecture diagram](docs/architecture-v0.3.html).
+
+The evidence/verdict compatibility core remains:
+
+![Evidence and verdict core](docs/architecture-v0.2.svg)
 
 The real flow, left to right:
 **case policy + hash → path-safe loader → schema adapter → metric semantics →
@@ -164,9 +170,10 @@ What is actually exercised, as of this tree:
 | Canonical digest (determinism, NaN rejection, mutation sensitivity) | covered by unit tests (`tests/test_canonical.py`) |
 | Both artifact adapters against minimized fixtures | covered by unit tests (`tests/test_adapters.py`) |
 | CLI exit codes, `--json` contract, loopback server E2E (incl. port release on SIGTERM) | covered by tests (`tests/test_cli.py`, `tests/test_server.py`, `tests/test_ui_dom.py`) |
+| Benchmark/Doctor/Advisor/Compare/Sweep/Pareto/Replay/Automation contracts | covered by the corresponding module E2E and adversarial tests; 619 tests pass in a fresh clone |
 | CI matrix: Linux + macOS, Python 3.11 + 3.12 (pytest, ruff, mypy, build) | green in GitHub Actions, including portable demo/history tests and wheel import |
 | `demo` command and fixture-portable quickstart | exercised by `tests/test_demo_v02.py` and `tests/test_cli_v02.py` |
-| Windows | **not** tested and **not** supported in v0.2 |
+| Windows | **not** tested and **not** supported in v0.3 |
 | The two real-world case configs under `configs/cases/` | bind absolute source-tree paths on one machine (see Advanced); not reproducible from a fresh checkout |
 
 Claim boundary: **a Serving Verdict verdict is a claim about the bound
@@ -237,8 +244,9 @@ docs/                    tdd-journal.md, diagrams, and supporting notes
 Never executes artifact content, never invokes a shell or Docker, never
 accepts a user-provided source root over HTTP (the CLI case config is the
 only source-root input), canonicalizes and constrains paths, bounds file size
-to 20 MiB, rejects symlink escape and special files, serves read-only, and
-releases the port on shutdown. Report vulnerabilities via
+to 20 MiB, rejects symlink escape and special files, keeps evidence APIs
+read-only, bounds automation jobs in memory, and releases the port on shutdown.
+Report vulnerabilities via
 [SECURITY.md](SECURITY.md) — not via a public issue.
 
 ## Advanced: running the real cases

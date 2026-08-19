@@ -261,22 +261,30 @@ DRAFT → PREFLIGHT → WARMUP → MEASURE → GRADE → SEALED
 - Trial registry and safe artifact archive.
 - CI, docs, screenshots, and release packaging.
 
-### v0.3 — Built-in benchmark runner
+### v0.3 — Inference engineering automation (implemented)
 
-- Endpoint config/preflight.
-- Quick profile.
-- Streaming serial/concurrency measurement.
-- Quality-lite/tool gates.
-- Benchmark run artifacts and compare command.
+- Credential-safe endpoint config/preflight and bounded quick profile.
+- Usage-backed streaming serial/concurrency measurement and quality/tool gates.
+- Serving Doctor, Capacity Planner, deterministic Config Advisor and inert
+  rollback recipes.
+- Baseline/candidate compare, seeded sweep planning and Pareto frontier.
+- Privacy-safe replay and CI regression decision contract.
+- Loopback Automation Wizard with bounded ephemeral jobs, progress and
+  cooperative cancellation/result discard.
 
-### v0.4 — Full local product
+### Future work (not part of the v0.3 claim)
 
-- UI benchmark wizard and progress.
-- Standard profile and replay profile.
-- Cancellation and history UX.
-- Learn/playbook surface.
-- Fresh-clone release, screenshots/GIF, PyPI package.
+- A larger standard benchmark profile.
+- Persisted automation-job history (current jobs are intentionally ephemeral).
+- Dedicated structured Doctor/Capacity/Advisor forms in the UI; v0.3 exposes
+  their package APIs and capability cards.
+- PyPI trusted publishing and Windows support.
 
 ## Release claim boundary
 
-Until v0.3 is implemented and exercised, the repository must not claim it runs benchmarks. Until an endpoint/runtime/model combination has a linked real run, it must be labeled `UNTESTED`. No claim may use “any model,” “production-ready,” “state-of-the-art,” or general quality language without corresponding evidence.
+The repository may claim that it runs the frozen quick benchmark only for the
+implemented OpenAI-compatible protocol and bounded workloads. An endpoint,
+runtime or model without a linked real run remains `UNTESTED`. No claim may use
+“any model,” “production-ready,” “state-of-the-art,” or general quality language
+without corresponding evidence. PROMOTE remains scoped to the exact workload,
+policy, gates and bound artifacts.
