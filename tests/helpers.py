@@ -145,3 +145,15 @@ def make_sglang_ab_fixture(
 
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def make_case(request_id: str, content: str = "hello") -> dict:
+    """One minimal OpenAI-chat workload case (single user message)."""
+    return {"request_id": request_id, "messages": [{"role": "user", "content": content}]}
+
+
+def make_jsonl_workload(cases: list[dict] | None = None) -> str:
+    """Serialize workload cases as JSONL (default: 3 trivial cases)."""
+    if cases is None:
+        cases = [make_case(f"req-{i}", content=f"prompt {i}") for i in range(3)]
+    return "\n".join(json.dumps(c) for c in cases)

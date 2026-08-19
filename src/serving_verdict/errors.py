@@ -103,3 +103,29 @@ class InconclusiveError(ServingVerdictError):
         super().__init__(detail or "; ".join(reason_codes))
         self.reason_codes = reason_codes
         self.detail = detail
+
+
+class WorkloadError(ServingVerdictError):
+    """Workload loading/schema violation (strict, fail-closed, sanitized).
+
+    Message text is structural only: bounds, key names and line numbers.
+    Never raw message content, values, credentials or filesystem paths.
+    """
+
+    exit_code = 2
+
+
+class ReplayError(ServingVerdictError):
+    """Replay execution/normalization failure.
+
+    All messages are sanitized: they never carry raw prompts, remote output,
+    executor exception text, credentials or filesystem paths.
+    """
+
+    exit_code = 2
+
+
+class GateError(ServingVerdictError):
+    """CI regression gate configuration or usage error."""
+
+    exit_code = 2
