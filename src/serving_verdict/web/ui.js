@@ -29,7 +29,7 @@
   // artifact adapters; operator_attested values are attested by the operator
   // and are never relabeled. Rendered exactly as the bundle carries them.
   var AUTHORITY_KINDS = ["machine_measured", "operator_attested"];
-  var state = { caseId: null, lastError: null };
+  var state = { caseId: null, lastError: null, automationJob: null };
 
   function $(id) { return document.getElementById(id); }
 
@@ -40,8 +40,8 @@
     return node;
   }
 
-  function api(path) {
-    return fetch(path).then(function (r) {
+  function api(path, options) {
+    return fetch(path, options || {}).then(function (r) {
       if (!r.ok) {
         var err = new Error("HTTP " + r.status);
         err.status = r.status;
@@ -213,6 +213,7 @@
     $("index-view").classList.remove("hidden");
     $("detail-view").classList.add("hidden");
     $("error-view").classList.add("hidden");
+    $("automation-view").classList.add("hidden");
     $("list-heading").textContent = "Verdicts";
     state.caseId = null;
     document.title = "Serving Verdict";
@@ -524,6 +525,7 @@
     state.caseId = caseId;
     $("index-view").classList.add("hidden");
     $("error-view").classList.add("hidden");
+    $("automation-view").classList.add("hidden");
     $("detail-view").classList.remove("hidden");
     $("detail-loading").classList.remove("hidden");
     $("detail-body").classList.add("hidden");
@@ -536,6 +538,84 @@
     });
   }
 
+  /* --------------------------- automation wizard --------------------------- */
+
+  function showAutomation() {
+    $("index-view").classList.add("hidden");
+    $("detail-view").classList.add("hidden");
+    $("error-view").classList.add("hidden");
+    $("automation-view").classList.remove("hidden");
+    document.title = "Automation · Serving Verdict";
+    api("/api/v1/automation/capabilities").then(function (caps) {
+      if (!caps.quick_benchmark) automationFail("Quick benchmark is unavailable.");
+    }).catch(function () { automationFail("Automation capability check failed."); });
+  }
+
+  function automationFail(message) {
+    $("auto-error").textContent = message || "Automation request failed.";
+    $("auto-error").classList.remove("hidden");
+    $("auto-status").textContent = "Error";
+  }
+
+  function renderAutomationJob(job) {
+    state.automationJob = job.job_id || state.automationJob;
+    $("auto-status").textContent = (job.state || "UNKNOWN") + " · " + (job.phase || "—");
+    var active = ["QUEUED", "RUNNING", "CANCEL_REQUESTED"].indexOf(job.state) !== -1;
+    $("auto-cancel").classList.toggle("hidden", !active);
+    $("auto-refresh").classList.toggle("hidden", !active);
+    if (job.state === "FAILED") automationFail("Benchmark failed. Secret and remote error text were suppressed.");
+    if (job.state === "CANCELLED") $("auto-status").textContent = "CANCELLED · result discarded";
+    if (job.state === "SUCCEEDED" && job.result) {
+      $("auto-result-empty").classList.add("hidden");
+      $("auto-result").classList.remove("hidden");
+      $("auto-result").textContent = JSON.stringify({
+        run_id: job.result.run_id,
+        run_status: job.result.run_status,
+        gates: job.result.gates,
+        aggregates: job.result.aggregates,
+        artifact_digest: job.result.artifact_digest
+      }, null, 2);
+    }
+    if (active && typeof setTimeout === "function") setTimeout(refreshAutomation, 750);
+  }
+
+  function refreshAutomation() {
+    if (!state.automationJob) return;
+    api("/api/v1/automation/jobs/" + encodeURIComponent(state.automationJob))
+      .then(renderAutomationJob)
+      .catch(function () { automationFail("Could not refresh benchmark status."); });
+  }
+
+  function startAutomation() {
+    $("auto-error").classList.add("hidden");
+    $("auto-result").classList.add("hidden");
+    $("auto-result-empty").classList.remove("hidden");
+    $("auto-status").textContent = "Starting…";
+    var body = {
+      schema_version: "serving-verdict.endpoint.v1",
+      id: $("auto-endpoint-id").value,
+      base_url: $("auto-base-url").value,
+      model: $("auto-model").value,
+      api_key_env: $("auto-api-env").value
+    };
+    api("/api/v1/automation/jobs", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    }).then(renderAutomationJob).catch(function (e) {
+      if (e.bodyPromise) {
+        e.bodyPromise.then(function (b) { automationFail(b.error || "Invalid automation request."); });
+      } else automationFail("Automation request failed.");
+    });
+  }
+
+  function cancelAutomation() {
+    if (!state.automationJob) return;
+    api("/api/v1/automation/jobs/" + encodeURIComponent(state.automationJob) + "/cancel", {
+      method: "POST"
+    }).then(renderAutomationJob).catch(function () { automationFail("Cancel request failed."); });
+  }
+
   function route() {
     var m = /^#\/([^/]+)/.exec(window.location.hash || "");
     if (m) { showDetail(decodeURIComponent(m[1])); } else { renderIndex(); }
@@ -543,6 +623,14 @@
 
   window.addEventListener("hashchange", route);
   document.addEventListener("DOMContentLoaded", function () {
+    $("nav-verdicts").addEventListener("click", function () {
+      window.location.hash = "";
+      renderIndex();
+    });
+    $("nav-automation").addEventListener("click", showAutomation);
+    $("auto-start").addEventListener("click", startAutomation);
+    $("auto-cancel").addEventListener("click", cancelAutomation);
+    $("auto-refresh").addEventListener("click", refreshAutomation);
     $("back-btn").addEventListener("click", function () {
       window.location.hash = "";
       renderIndex();

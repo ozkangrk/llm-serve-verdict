@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "serving-verdict"
-version = "0.2.0"
+version = "0.3.0"
 description = "Local-first, evidence-driven PROMOTE/REJECT/INCONCLUSIVE decisions for LLM serving changes"
 readme = "README.md"
 requires-python = ">=3.11"

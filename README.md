@@ -14,6 +14,8 @@ re-litigate.
 
 ![Serving Verdict verdict list](docs/screenshots/verdict-list.png)
 
+![Serving Verdict Automation Wizard](docs/screenshots/automation-desktop.png)
+
 ## Why this exists
 
 Inference teams regularly change serving configurations: runtime versions,
@@ -59,17 +61,18 @@ behind the decision explicit and reproducible.
 ## How it fits the workflow
 
 ```text
-1. Run the same frozen tests on the current and candidate configurations.
-2. Bind the resulting artifacts and SHA-256 hashes in a case policy.
-3. Import the case with Serving Verdict.
-4. Inspect performance deltas, required gates, evidence authority, and scope.
-5. Verify the resulting decision bundle offline or serve it in the local UI.
+1. Connect a loopback OpenAI-compatible endpoint and run the frozen quick profile.
+2. Diagnose hardware/capacity constraints and generate safe one-variable experiments.
+3. Compare baseline and candidate artifacts under hard quality and stability gates.
+4. Inspect evidence, recommendations, Pareto trade-offs, and rollback recipes.
+5. Replay privacy-redacted workloads in CI and verify sealed decisions offline.
 ```
 
-The current v0.2 release consumes bound benchmark artifacts; it does not start
-model servers or generate load. A built-in OpenAI-compatible benchmark runner
-is being developed separately and will feed the same verdict engine without
-changing this decision contract.
+v0.3 includes a built-in OpenAI-compatible quick benchmark runner and a local
+Automation Wizard. It sends bounded frozen requests only to an operator-selected
+loopback endpoint; it never starts, stops, or reconfigures a model server. API
+keys remain environment-only, and automation artifacts preserve the same
+fail-closed decision contract.
 
 ## 30-second demo
 
@@ -139,8 +142,8 @@ not emit cannot be served.
 ## What it is not
 
 - Not a GPU dashboard, and not a monitoring system.
-- Not a load generator: it consumes benchmark artifacts; it never generates
-  load.
+- Not a stress/load-testing platform: the quick profile sends a small, frozen,
+  bounded workload only to an explicitly selected loopback endpoint.
 - Not a runtime manager: it never starts, stops, or configures a server,
   container, or accelerator.
 - Not a generic benchmark comparator: only the two recognized artifact
@@ -183,6 +186,8 @@ serving-verdict list DATA_DIR [--json]
 serving-verdict show BUNDLE.json [--json]
 serving-verdict history [DATA_DIR] [--json]
 serving-verdict reindex [DATA_DIR] [--json]
+serving-verdict endpoint check ENDPOINT.yaml [--json]
+serving-verdict bench run --endpoint ENDPOINT.yaml --profile quick --out RUN.json [--json]
 serving-verdict serve --host 127.0.0.1 --port 8787 --data-dir DATA_DIR
 ```
 
@@ -201,9 +206,13 @@ Exit codes:
 - `GET /api/v1/health`, `GET /api/v1/ready`, `GET /api/v1/verdicts`,
   `GET /api/v1/verdicts/{case_id}`, `GET /api/v1/trials`,
   `GET /api/v1/trials/{case_id}`, `GET /api/v1/artifacts/{sha}`,
-  `GET /api/v1/metrics`, and `GET /` (the UI).
+  `GET /api/v1/metrics`, `GET /api/v1/automation/capabilities`, and `GET /`.
+- `POST /api/v1/automation/jobs` starts one bounded ephemeral quick run;
+  `GET /api/v1/automation/jobs/{id}` polls it and `POST .../{id}/cancel`
+  requests cooperative cancellation with result discard.
 - Loopback-only (`127.0.0.1`); any other host is rejected at startup.
-- Read-only: no POST/PUT/PATCH/DELETE. No live system probing (post-v0.2).
+- Bundle, trial, and artifact APIs remain read-only. Automation POST routes only
+  create bounded in-memory jobs; they never mutate the data directory or runtime.
 
 ## Quality gates
 

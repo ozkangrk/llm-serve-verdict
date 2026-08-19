@@ -9,9 +9,12 @@ Commands (MVP v0.1 + v0.2 portable trial backend):
     history [DATA_DIR] [--json]
     reindex [DATA_DIR] [--json]
     serve --host 127.0.0.1 --port 8787 [--data-dir DATA_DIR]
+    endpoint check ENDPOINT.yaml [--allow-remote] [--json]
+    bench run --endpoint ENDPOINT.yaml --profile quick --out RUN.json [--json]
 
 Exit codes: 0 success (incl. valid REJECT/INCONCLUSIVE imports and passing
-verify); 2 usage/config/load error; 4 bundle integrity verification failure.
+verify); 2 usage/config/load error; 4 bundle/artifact integrity verification
+failure.
 JSON mode emits exactly one JSON object on stdout; diagnostics go to stderr.
 The data payload of `list`, `history` and `reindex` is emitted on stdout in
 BOTH modes (diagnostics only go to stderr).
@@ -440,6 +443,129 @@ def _cmd_serve(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# benchmark endpoint / runner commands
+# ---------------------------------------------------------------------------
+
+
+def _cmd_endpoint_check(args: argparse.Namespace) -> int:
+    from serving_verdict.endpoint import (
+        EndpointConfigError,
+        load_endpoint_config,
+        resolve_api_key,
+    )
+    from serving_verdict.preflight import EndpointPreflightError, preflight_endpoint
+
+    try:
+        config = load_endpoint_config(args.endpoint, allow_remote=args.allow_remote)
+    except EndpointConfigError as exc:
+        if args.json:
+            _emit_json({"ok": False, "error": f"endpoint config error: {exc}"})
+        else:
+            _diag(f"endpoint config error: {exc}")
+        return 2
+    try:
+        api_key = resolve_api_key(config)
+        result = preflight_endpoint(config, timeout_s=args.timeout)
+    except EndpointConfigError as exc:
+        # The env var holds the secret; never echo its value.
+        message = f"endpoint API key is not set: {exc}"
+        if args.json:
+            _emit_json({"ok": False, "error": message, "endpoint_id": config.endpoint_id})
+        else:
+            _diag(message)
+        return 2
+    except EndpointPreflightError as exc:
+        message = f"endpoint preflight failed: {exc}"
+        if args.json:
+            _emit_json({"ok": False, "error": message, "endpoint_id": config.endpoint_id})
+        else:
+            _diag(message)
+        return 2
+    del api_key  # the key never leaves this scope and never reaches output
+    payload = {
+        "ok": True,
+        "endpoint_id": config.endpoint_id,
+        "requested_model": result.requested_model,
+        "served_model": result.served_model,
+        "models_probe": result.models_probe,
+        "chat_probe": result.chat_probe,
+        "model_ids": list(result.model_ids),
+    }
+    if args.json:
+        _emit_json(payload)
+    else:
+        _diag(
+            f"endpoint {config.endpoint_id} preflight OK "
+            f"(served model: {result.served_model})"
+        )
+    return 0
+
+
+def _cmd_bench_run(args: argparse.Namespace) -> int:
+    from serving_verdict.benchmark_runner import (
+        BenchmarkRunError,
+        run_quick_benchmark,
+    )
+    from serving_verdict.endpoint import (
+        EndpointConfigError,
+        load_endpoint_config,
+        resolve_api_key,
+    )
+    from serving_verdict.preflight import EndpointPreflightError
+    from serving_verdict.profile import get_profile
+
+    try:
+        profile = get_profile(args.profile)
+    except LookupError as exc:
+        _diag(str(exc))
+        return 2
+    try:
+        config = load_endpoint_config(args.endpoint, allow_remote=args.allow_remote)
+        api_key = resolve_api_key(config)
+    except (EndpointConfigError, EndpointPreflightError, LookupError) as exc:
+        if args.json:
+            _emit_json({"ok": False, "error": f"endpoint configuration error: {exc}"})
+        else:
+            _diag(f"endpoint configuration error: {exc}")
+        return 2
+    out_path = Path(args.out)
+    try:
+        result = run_quick_benchmark(
+            config,
+            api_key=api_key,
+            profile=profile,
+            transport_timeout_s=args.timeout,
+        )
+    except (EndpointConfigError, EndpointPreflightError) as exc:
+        _diag(f"endpoint preflight failed: {exc}")
+        return 2
+    except BenchmarkRunError as exc:
+        _diag(f"benchmark run failed: {exc}")
+        return 2
+    try:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(
+            json.dumps(result.artifact, ensure_ascii=False, indent=2, sort_keys=True)
+            + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        _diag(f"cannot write benchmark artifact: {exc}")
+        return 2
+    summary = result.public_summary()
+    summary["gates"] = result.artifact["gates"]
+    summary["artifact_path"] = str(out_path)
+    if args.json:
+        _emit_json(summary)
+    else:
+        _diag(
+            f"benchmark run sealed: {summary['run_id']} "
+            f"(status: {summary['run_status']}) written to {out_path}"
+        )
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # argparse wiring
 # ---------------------------------------------------------------------------
 
@@ -504,6 +630,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_serve.add_argument("--port", type=int, default=DEFAULT_PORT)
     p_serve.add_argument("--data-dir", default=None)
 
+    p_endpoint = sub.add_parser("endpoint", help="endpoint utilities")
+    p_endpoint_sub = p_endpoint.add_subparsers(dest="endpoint_command", required=True)
+    p_endpoint_check = p_endpoint_sub.add_parser(
+        "check", help="preflight-check a configured endpoint"
+    )
+    p_endpoint_check.add_argument("endpoint")
+    p_endpoint_check.add_argument("--allow-remote", action="store_true")
+    p_endpoint_check.add_argument("--timeout", type=float, default=10.0)
+    p_endpoint_check.add_argument("--json", action="store_true")
+
+    p_bench = sub.add_parser("bench", help="run frozen benchmark profiles")
+    p_bench_sub = p_bench.add_subparsers(dest="bench_command", required=True)
+    p_bench_run = p_bench_sub.add_parser(
+        "run", help="run a frozen benchmark profile against an endpoint"
+    )
+    p_bench_run.add_argument("--endpoint", required=True)
+    p_bench_run.add_argument("--profile", default="quick")
+    p_bench_run.add_argument("--out", required=True)
+    p_bench_run.add_argument("--allow-remote", action="store_true")
+    p_bench_run.add_argument("--timeout", type=float, default=120.0)
+    p_bench_run.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -519,6 +667,8 @@ def main(argv: list[str] | None = None) -> int:
         "history": _cmd_history,
         "reindex": _cmd_reindex,
         "serve": _cmd_serve,
+        "endpoint": _cmd_endpoint_check,
+        "bench": _cmd_bench_run,
     }
     return handlers[args.command](args)
 

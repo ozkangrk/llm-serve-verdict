@@ -56,6 +56,40 @@ class ArchiveError(ServingVerdictError):
     exit_code = 2
 
 
+class PlanError(ServingVerdictError):
+    """Experiment planning failed on bad input (exit 2, nothing was planned).
+
+    Raised by the v0.4 sweep planner and Pareto frontier for out-of-allowlist
+    parameter ranges, non-scalar or type-mismatched range values, duplicate
+    values, unbounded trial counts, or malformed constraints. The planner is
+    pure: a PlanError means no plan was produced and nothing was executed.
+    """
+
+    exit_code = 2
+
+
+class SummaryIntegrityError(IntegrityError):
+    """A normalized benchmark summary is unusable or tampered (exit 4).
+
+    Raised when a sealed summary fails fail-closed validation: wrong schema
+    version, missing/extra sections or keys, bad numeric types, a forbidden
+    tamper marker, or a digest that does not recompute over the payload.
+    """
+
+    exit_code = 4
+
+
+class ArtifactIntegrityError(IntegrityError):
+    """A canonical compare/sweep/pareto artifact failed verification (exit 4).
+
+    The artifact is not the one that was sealed: its recorded artifact_digest
+    does not recompute, its schema version is foreign, or required fields
+    are missing/malformed.
+    """
+
+    exit_code = 4
+
+
 class InconclusiveError(ServingVerdictError):
     """Evidence integrity/comparability problem that yields an INCONCLUSIVE bundle.
 
@@ -69,3 +103,29 @@ class InconclusiveError(ServingVerdictError):
         super().__init__(detail or "; ".join(reason_codes))
         self.reason_codes = reason_codes
         self.detail = detail
+
+
+class WorkloadError(ServingVerdictError):
+    """Workload loading/schema violation (strict, fail-closed, sanitized).
+
+    Message text is structural only: bounds, key names and line numbers.
+    Never raw message content, values, credentials or filesystem paths.
+    """
+
+    exit_code = 2
+
+
+class ReplayError(ServingVerdictError):
+    """Replay execution/normalization failure.
+
+    All messages are sanitized: they never carry raw prompts, remote output,
+    executor exception text, credentials or filesystem paths.
+    """
+
+    exit_code = 2
+
+
+class GateError(ServingVerdictError):
+    """CI regression gate configuration or usage error."""
+
+    exit_code = 2
