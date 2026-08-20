@@ -184,7 +184,7 @@ def test_index_list_verdict_first_with_created_at_and_document_title(tmp_path: P
         assert b["case_id"] in card["text"]
         assert _utc_date(b["created_at"]) in card["text"], "created_at (UTC date) rendered"
     # visible H1 carries the view title
-    assert "Verdicts" in doc["listHeading"]
+    assert doc["listHeading"] == "Deployment verdicts"
 
 
 def test_index_loading_then_empty_state() -> None:

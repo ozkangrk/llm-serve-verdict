@@ -216,7 +216,7 @@
     $("detail-view").classList.add("hidden");
     $("error-view").classList.add("hidden");
     $("automation-view").classList.add("hidden");
-    $("list-heading").textContent = "Verdicts";
+    $("list-heading").textContent = "Deployment verdicts";
     state.caseId = null;
     document.title = "LLM ServeVerdict";
 
