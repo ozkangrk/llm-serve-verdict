@@ -1,7 +1,7 @@
 """v0.2 portable demo (RED first).
 
 Contract:
-- ``serving-verdict demo --out-dir DIR`` writes a self-contained, in-package
+- ``llm-serve-verdict demo --out-dir DIR`` writes a self-contained, in-package
   demo into DIR: two cases with evidence and pre-built bundles
   (``demo-promote`` -> PROMOTE, ``demo-reject`` -> REJECT via a failed
   hard gate). No external source tree is required.

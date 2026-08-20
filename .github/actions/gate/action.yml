@@ -1,4 +1,4 @@
-name: Serving Verdict promotion gate
+name: LLM ServeVerdict promotion gate
 description: Verify a sealed verdict bundle and enforce a deployment requirement
 inputs:
   bundle:
@@ -61,7 +61,7 @@ runs:
         esac
         if [[ -n "${SV_TRUST_STORE}" ]]; then args+=(--trust-store "${SV_TRUST_STORE}"); fi
         set +e
-        uv run --frozen serving-verdict "${args[@]}" >"${result_file}"
+        uv run --frozen llm-serve-verdict "${args[@]}" >"${result_file}"
         gate_rc=$?
         set -e
         python - "${result_file}" "${GITHUB_OUTPUT}" <<'PY'

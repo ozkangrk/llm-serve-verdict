@@ -66,9 +66,9 @@ uv build
 ## 6. PyPI (optional and only after GitHub Release verification)
 
 - [ ] PyPI Trusted Publisher exists for owner `ozkangrk`, repository
-      `serving-verdict`, workflow `publish-pypi.yaml`, environment `pypi`.
+      `llm-serve-verdict`, workflow `publish-pypi.yaml`, environment `pypi`.
 - [ ] GitHub `pypi` environment approvals are configured if required.
-- [ ] Publish workflow completes and `pip install serving-verdict==<version>`
+- [ ] Publish workflow completes and `pip install llm-serve-verdict==<version>`
       resolves from PyPI.
 - [ ] If Trusted Publisher is absent, do not use a token shortcut; explicitly
       document that PyPI was skipped.

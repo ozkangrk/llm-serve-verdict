@@ -1,4 +1,4 @@
-/* Serving Verdict — self-contained offline UI (v0.2, verdict-first).
+/* LLM ServeVerdict — self-contained offline UI (v0.2, verdict-first).
  *
  * Design contract:
  * - Verdict first: every list card and detail view leads with the verdict as
@@ -218,7 +218,7 @@
     $("automation-view").classList.add("hidden");
     $("list-heading").textContent = "Verdicts";
     state.caseId = null;
-    document.title = "Serving Verdict";
+    document.title = "LLM ServeVerdict";
 
     var list = $("verdict-list");
     list.innerHTML = "";
@@ -302,7 +302,7 @@
     $("index-view").classList.add("hidden");
     $("detail-view").classList.add("hidden");
     $("error-view").classList.remove("hidden");
-    document.title = "Serving Verdict · " + kind;
+    document.title = "LLM ServeVerdict · " + kind;
 
     // Defensively clear any stale verdict state.
     $("verdict-label").textContent = "";
@@ -344,7 +344,7 @@
     $("detail-view").classList.remove("hidden");
     $("detail-loading").classList.add("hidden");
     $("detail-body").classList.remove("hidden");
-    document.title = (verdict || "Case") + " · " + (doc.case_id || state.caseId || "");
+    document.title = (verdict || "Case") + " · " + (doc.case_id || state.caseId || "") + " · LLM ServeVerdict";
 
     var label = $("verdict-label");
     label.textContent = verdict || "—";
@@ -549,7 +549,7 @@
     $("detail-view").classList.add("hidden");
     $("error-view").classList.add("hidden");
     $("automation-view").classList.remove("hidden");
-    document.title = "Automation · Serving Verdict";
+    document.title = "Automation · LLM ServeVerdict";
     api("/api/v1/automation/capabilities").then(function (caps) {
       if (!caps.quick_benchmark) automationFail("Quick benchmark is unavailable.");
     }).catch(function () { automationFail("Automation capability check failed."); });

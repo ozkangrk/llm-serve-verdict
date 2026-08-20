@@ -1,4 +1,4 @@
-"""Command-line interface for Serving Verdict.
+"""Command-line interface for LLM ServeVerdict.
 
 Commands (MVP v0.1 + v0.2 portable trial backend):
     import-case CASE.yaml --out BUNDLE.json [--source-root DIR] [--archive DIR] [--json]
@@ -67,7 +67,7 @@ def _emit_json(obj: Any) -> None:
 
 
 def _diag(message: str) -> None:
-    print(f"serving-verdict: {message}", file=sys.stderr)
+    print(f"llm-serve-verdict: {message}", file=sys.stderr)
 
 
 def _resolve_data_dir(explicit: str | None) -> Path:
@@ -792,7 +792,7 @@ def _cmd_bench_run(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="serving-verdict",
+        prog="llm-serve-verdict",
         description="Deterministic, tamper-evident PROMOTE/REJECT/INCONCLUSIVE decisions.",
     )
     sub = parser.add_subparsers(dest="command", required=True)

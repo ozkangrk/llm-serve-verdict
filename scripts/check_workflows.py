@@ -107,7 +107,7 @@ def parse_workflow(path: Path) -> Any:
 
 
 def _uses_refs(doc: Any) -> list[str]:
-    """Collect all ``uses:`` references from every job step."""
+    """Collect action steps and reusable-workflow ``uses:`` references."""
     refs: list[str] = []
     jobs = doc.get("jobs") or {}
     if not isinstance(jobs, dict):
@@ -115,6 +115,8 @@ def _uses_refs(doc: Any) -> list[str]:
     for job in jobs.values():
         if not isinstance(job, dict):
             continue
+        if isinstance(job.get("uses"), str):
+            refs.append(job["uses"])
         for step in job.get("steps") or []:
             if isinstance(step, dict) and isinstance(step.get("uses"), str):
                 refs.append(step["uses"])

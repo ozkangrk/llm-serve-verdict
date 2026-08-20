@@ -1,13 +1,13 @@
 # CI promotion gate
 
-`serving-verdict gate` verifies a sealed bundle before evaluating its verdict.
+`llm-serve-verdict gate` verifies a sealed bundle before evaluating its verdict.
 A client-side verdict edit therefore fails integrity verification; it can never
 turn REJECT into PROMOTE.
 
 ## CLI
 
 ```bash
-serving-verdict gate verdict.json \
+llm-serve-verdict gate verdict.json \
   --require PROMOTE \
   --fail-inconclusive \
   --require-signature \

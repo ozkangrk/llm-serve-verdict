@@ -22,7 +22,7 @@ Instead:
    GitHub → this repo → *Security* tab → *New draft security advisory*.
    This keeps the report private until you (or a maintainer) publish it.
 2. Or email the maintainers directly (see the author list in `pyproject.toml`)
-   with the subject prefix `[security] serving-verdict`.
+   with the subject prefix `[security] llm-serve-verdict`.
 
 Include:
 

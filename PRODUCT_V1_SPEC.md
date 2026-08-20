@@ -1,4 +1,4 @@
-# Serving Verdict v1 — Benchmark, Compare, Decide
+# LLM ServeVerdict v1 — Benchmark, Compare, Decide
 
 > Normative product direction after v0.2. Existing v0.1 bundle verification and fail-closed decision behavior remain compatibility requirements.
 
@@ -179,13 +179,13 @@ Verdicts are scoped to the exact endpoints, model identities, protocol, workload
 ## CLI
 
 ```text
-serving-verdict endpoint check endpoint.yaml
-serving-verdict bench run --endpoint endpoint.yaml --profile quick --out run.json
-serving-verdict bench compare --baseline baseline.json --candidate candidate.json --out verdict.json
-serving-verdict demo --out-dir demo
-serving-verdict history [--case CASE] [--json]
-serving-verdict verify verdict.json [--json]
-serving-verdict serve --host 127.0.0.1 --port 8787 --data-dir data
+llm-serve-verdict endpoint check endpoint.yaml
+llm-serve-verdict bench run --endpoint endpoint.yaml --profile quick --out run.json
+llm-serve-verdict bench compare --baseline baseline.json --candidate candidate.json --out verdict.json
+llm-serve-verdict demo --out-dir demo
+llm-serve-verdict history [--case CASE] [--json]
+llm-serve-verdict verify verdict.json [--json]
+llm-serve-verdict serve --host 127.0.0.1 --port 8787 --data-dir data
 ```
 
 Exit codes remain:

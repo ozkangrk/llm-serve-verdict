@@ -1,4 +1,4 @@
-# Serving Verdict MVP v0.1 — Normative Contract
+# LLM ServeVerdict MVP v0.1 — Normative Contract
 
 > **Historical compatibility contract.** This document remains authoritative
 > for v0.1 bundle/decision compatibility. The current v0.3 product surface and
@@ -27,10 +27,10 @@ A local CLI and read-only web UI that turns bound inference evidence into a dete
 
 ```bash
 uv sync --extra dev
-uv run serving-verdict import-case configs/cases/dspark-k7.yaml --out data/dspark-k7.verdict.json
-uv run serving-verdict import-case configs/cases/sglang-eagle.yaml --out data/sglang-eagle.verdict.json
-uv run serving-verdict verify data/dspark-k7.verdict.json
-uv run serving-verdict serve --host 127.0.0.1 --port 8787 --data-dir data
+uv run llm-serve-verdict import-case configs/cases/dspark-k7.yaml --out data/dspark-k7.verdict.json
+uv run llm-serve-verdict import-case configs/cases/sglang-eagle.yaml --out data/sglang-eagle.verdict.json
+uv run llm-serve-verdict verify data/dspark-k7.verdict.json
+uv run llm-serve-verdict serve --host 127.0.0.1 --port 8787 --data-dir data
 ```
 
 Open `http://127.0.0.1:8787`.
@@ -135,11 +135,11 @@ The SGLang case must reject because process stability/production replay failed e
 ## CLI
 
 ```text
-serving-verdict import-case CASE.yaml --out BUNDLE.json [--json]
-serving-verdict verify BUNDLE.json [--json]
-serving-verdict list DATA_DIR [--json]
-serving-verdict show BUNDLE.json [--json]
-serving-verdict serve --host 127.0.0.1 --port 8787 --data-dir DATA_DIR
+llm-serve-verdict import-case CASE.yaml --out BUNDLE.json [--json]
+llm-serve-verdict verify BUNDLE.json [--json]
+llm-serve-verdict list DATA_DIR [--json]
+llm-serve-verdict show BUNDLE.json [--json]
+llm-serve-verdict serve --host 127.0.0.1 --port 8787 --data-dir DATA_DIR
 ```
 
 Exit codes:

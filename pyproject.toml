@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "serving-verdict"
+name = "llm-serve-verdict"
 version = "0.4.0"
 description = "Local-first, evidence-driven PROMOTE/REJECT/INCONCLUSIVE decisions for LLM serving changes"
 readme = "README.md"
@@ -40,9 +40,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ozkangrk/serving-verdict"
-Repository = "https://github.com/ozkangrk/serving-verdict"
-Issues = "https://github.com/ozkangrk/serving-verdict/issues"
+Homepage = "https://github.com/ozkangrk/llm-serve-verdict"
+Repository = "https://github.com/ozkangrk/llm-serve-verdict"
+Issues = "https://github.com/ozkangrk/llm-serve-verdict/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -55,6 +55,7 @@ dev = [
 ]
 
 [project.scripts]
+llm-serve-verdict = "serving_verdict.cli:main"
 serving-verdict = "serving_verdict.cli:main"
 
 [tool.hatch.build.targets.wheel]

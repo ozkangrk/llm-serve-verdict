@@ -32,13 +32,16 @@ No unreleased user-facing changes.
 ### Changed
 
 - Package version is `0.4.0`.
+- Product, repository and distribution are renamed to `LLM ServeVerdict`,
+  `llm-serve-verdict`; the `serving_verdict` import package, schema IDs and
+  legacy `serving-verdict` CLI alias remain compatible.
 - Promotion claims now distinguish digest integrity from signer authenticity.
 - Runtime, adapter, statistics, trust and CI behavior are documented as stable
   machine-facing contracts with explicit residual limitations.
 
 ### Verification
 
-- Integrated collection: 962 tests.
+- Integrated collection: 973 tests.
 - Ruff and mypy over 51 source files; sdist and wheel build.
 - Python 3.11 cross-version statistics golden verification.
 - Independent fail-closed reviews closed every reported HIGH/MEDIUM finding in
@@ -117,7 +120,7 @@ No unreleased user-facing changes.
 
 ### Release
 
-- GitHub Release: https://github.com/ozkangrk/serving-verdict/releases/tag/v0.2.0
+- GitHub Release: https://github.com/ozkangrk/llm-serve-verdict/releases/tag/v0.2.0
 - Wheel, sdist and five verified UI screenshots are attached.
 - Independent fail-closed review closed all HIGH/MEDIUM findings before tag.
 - PyPI trusted publishing was not configured; `0.2.0` was not published there.

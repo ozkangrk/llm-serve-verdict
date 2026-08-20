@@ -1,4 +1,4 @@
-# TDD Journal — Serving Verdict MVP v0.1
+# TDD Journal — LLM ServeVerdict MVP v0.1
 
 > Historical MVP journal; retained as provenance, not as the current feature
 > list. See `CHANGELOG.md` and `PRODUCT_V1_SPEC.md` for v0.3.

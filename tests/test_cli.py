@@ -208,3 +208,11 @@ def test_main_no_command_exits_2() -> None:
     with pytest.raises(SystemExit) as ei:
         cli.main([])
     assert ei.value.code == 2
+
+
+def test_primary_and_legacy_cli_entrypoints_exist() -> None:
+    for executable in ("llm-serve-verdict", "serving-verdict"):
+        path = ROOT / ".venv" / "bin" / executable
+        result = subprocess.run([str(path), "--help"], capture_output=True, text=True)
+        assert result.returncode == 0
+        assert "LLM" in result.stdout or "llm-serve-verdict" in result.stdout

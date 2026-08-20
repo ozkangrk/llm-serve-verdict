@@ -1,4 +1,4 @@
-# Serving Verdict — Rakip / Öncelik Araştırması (2026-08-20)
+# LLM ServeVerdict — Rakip / Öncelik Araştırması (2026-08-20)
 
 Kapsam: vLLM Production Stack, llm-d, NVIDIA Dynamo + GenAI-Perf/AIPerf, KServe,
 BentoML/BentoCloud, Ray Serve, SkyPilot, SGLang (+genai-bench), GuideLLM,
@@ -158,7 +158,7 @@ kalite kanıtı değildir. Kod değişikliği yapılmadı.
 
 ## 4. Defansif wedge (tek cümle)
 
-> **Serving Verdict, ölçüm yapmayı değil ölçme sonucunu bağlamla mühürlemeyi
+> **LLM ServeVerdict, ölçüm yapmayı değil ölçme sonucunu bağlamla mühürlemeyi
 > satan, yerel-first, fail-closed promotion otoritesidir: tam imaj digest + bayrak +
 > GPU + runtime parmak izine bağlı, imzalanmış PROMOTE/REJECT/INCONCLUSIVE kararı.**
 
@@ -176,7 +176,7 @@ Neden savunulabilir:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Serving Verdict core (local, loopback, saf)            │
+│  LLM ServeVerdict core (local, loopback, saf)            │
 │  • verdict/policy engine (v0.3 fail-closed sözleşme)    │
 │  • evidence store (sealed artifact + canonical digest)  │
 │  • provenance signer (offline DSSE + Ed25519)           │
@@ -338,6 +338,6 @@ Bileşen katmanı (runtime, K8s, yük üretimi, metrik) 2026'da derinden çözü
 CNCF/NVIDIA ekosistemi tarafından standartlaştırılmış durumda. Boş katman
 **karar + kanıt yetkisi**dir: hiçbir platform benchmark çıktısını "bu tam
 konfigürasyon, bu GPU, bu imaj digest'i, bu policy ile PROMOTE/REJECT" olarak
-mühürleyip imzalamıyor. Serving Verdict'in 2 aşamalı yolu (lab-run → signed
+mühürleyip imzalamıyor. LLM ServeVerdict'in 2 aşamalı yolu (lab-run → signed
 verdict) bu boşluğu, rekabetin güçlü olduğu katmanları yeniden kurmadan, allowlist'li
 şablon ve fail-closed invariants'lerle doldurur.

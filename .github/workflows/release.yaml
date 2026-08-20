@@ -75,7 +75,7 @@ jobs:
         run: |
           uv venv /tmp/wheel-venv --python 3.12
           uv pip install --python /tmp/wheel-venv/bin/python dist/*.whl
-          /tmp/wheel-venv/bin/python -c "import importlib.metadata as m, serving_verdict as s; assert s.__version__ == m.version('serving-verdict'), (s.__version__, m.version('serving-verdict'))"
+          /tmp/wheel-venv/bin/python -c "import importlib.metadata as m, serving_verdict as s; assert s.__version__ == m.version('llm-serve-verdict'), (s.__version__, m.version('llm-serve-verdict'))"
 
       - name: Verify both artifacts were produced
         run: |

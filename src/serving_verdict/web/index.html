@@ -3,24 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Serving Verdict</title>
+<title>LLM ServeVerdict</title>
 <link rel="stylesheet" href="/ui.css">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><span class="brand-mark" aria-hidden="true">SV</span><span>Serving Verdict</span></div>
-  <div class="topbar-sub"><span class="dot" aria-hidden="true"></span> local decision authority</div>
+  <div class="brand"><span class="brand-mark" aria-hidden="true">LSV</span><span>LLM ServeVerdict</span></div>
+  <div class="topbar-sub"><span class="dot" aria-hidden="true"></span> LLM serving promotion gate</div>
   <nav class="topnav" aria-label="Primary">
     <button id="nav-verdicts" class="btn" type="button">Verdicts</button>
-    <button id="nav-automation" class="btn" type="button">Automation</button>
+    <button id="nav-automation" class="btn" type="button">Benchmark</button>
   </nav>
 </header>
 
 <main>
   <!-- ===================== INDEX (list) ===================== -->
   <section id="index-view" aria-labelledby="list-heading">
-    <div class="page-kicker">DECISION AUTHORITY</div>
-    <h1 id="list-heading">Verdicts</h1>
+    <div class="page-kicker">LLM SERVING DECISIONS</div>
+    <h1 id="list-heading">Deployment verdicts</h1>
     <p class="muted">Bound, tamper-evident decisions from local inference evidence.
       Verdict first, always as a text label. <span id="verdict-count" class="verdict-count"></span></p>
     <div id="verdict-list" class="cards" aria-label="Verdict list"></div>
@@ -58,7 +58,7 @@
       <div class="verdict-panel">
         <div class="verdict" id="verdict-label"></div>
         <div>
-          <div class="case-id" id="detail-case-id"></div>
+          <h1 class="case-id" id="detail-case-id"></h1>
           <div class="created-at" id="detail-created"></div>
           <div class="reason-codes" id="reason-codes"></div>
         </div>
@@ -129,8 +129,8 @@
 
   <!-- ===================== AUTOMATION WIZARD ===================== -->
   <section id="automation-view" class="hidden" aria-labelledby="automation-heading">
-    <div class="page-kicker">INFERENCE WORKSPACE</div>
-    <h1 id="automation-heading">Automation Wizard</h1>
+    <div class="page-kicker">MEASURE A CANDIDATE</div>
+    <h1 id="automation-heading">Benchmark an LLM server</h1>
     <p class="muted">Connect a loopback OpenAI-compatible endpoint, run the frozen quick profile,
       and receive a sealed artifact. API keys stay server-side in environment variables.</p>
     <div class="automation-grid">
@@ -172,7 +172,7 @@
 
 <div id="copy-live" class="visually-hidden" role="status" aria-live="polite"></div>
 
-<footer class="footer"><strong>Serving Verdict</strong><span>deterministic engine</span><span>no LLM opinion</span><span>loopback only</span></footer>
+<footer class="footer"><strong>LLM ServeVerdict</strong><span>deterministic engine</span><span>no LLM opinion</span><span>loopback only</span></footer>
 <script src="/ui.js"></script>
 </body>
 </html>

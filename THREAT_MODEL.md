@@ -1,6 +1,6 @@
 # Threat Model
 
-Formal threat model for **Serving Verdict** v0.4. This document is the
+Formal threat model for **LLM ServeVerdict** v0.4. This document is the
 security contract for the release pipeline and the verdict product: it names
 the attackers, the assets, and — for each threat — the concrete mitigation,
 where it lives, and what remains the *operator's* job. It deliberately does
@@ -180,7 +180,7 @@ spoofs the identity of the official pipeline.
   pipeline uses GitHub's artifact attestation service. We do **not** claim
   cosign/Sigstore signatures, a transparency-log entry in a Sigstore
   instance, or a public-key certificate chain.
-- If the `ozkangrk/serving-verdict` repository itself is fully compromised
+- If the `ozkangrk/llm-serve-verdict` repository itself is fully compromised
   (maintainer account takeover + repo admin), an attacker can rewrite the
   workflows before branch protection blocks the merge. Mitigations are
   organizational: required PR reviews, protected environment approvals for
@@ -202,9 +202,9 @@ summaries, error messages, or the git history.
 - **Redaction tests**: error messages and payloads are built from stable
   identifiers only; tests assert that credential values never appear in
   artifacts, API responses, or logs.
-- **Secret scanning**: `gitleaks` runs in CI over the full clone on every
-  push/PR to `main` (`secret-scan.yaml`), catching accidentally committed
-  secrets.
+- **Secret scanning**: checksum-verified `gitleaks` runs with
+  `--log-opts=--all` over every reachable commit on each push/PR to `main`
+  (`secret-scan.yaml`), including secrets removed in later commits.
 - **Prohibited persisted fields**: artifact schemas have no free-form
   "extra" fields that could smuggle a credential.
 
@@ -218,7 +218,7 @@ spawn a shell, or run container/remote workloads.
 
 **Position: non-goal by design.**
 
-- Serving Verdict **never executes artifact content**, never invokes a
+- LLM ServeVerdict **never executes artifact content**, never invokes a
   shell or Docker, and never runs remote jobs on the operator's behalf.
   There is no runtime container surface to protect, and none will be added
   without a new, separately-reviewed security model.

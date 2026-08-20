@@ -1,4 +1,4 @@
-"""CLI tests for `serving-verdict gate` (FR-7): exit codes, JSON contract,
+"""CLI tests for `llm-serve-verdict gate` (FR-7): exit codes, JSON contract,
 parity with `verify`, GitHub summary file, no shell interpolation.
 
 Exit-code contract (docs/CI_INTEGRATION.md):
@@ -92,7 +92,7 @@ def test_gate_promote_require_promote_exit_0(tmp_path: Path) -> None:
     p = write_json(tmp_path, make_v01_bundle("PROMOTE"))
     r = run_cli("gate", str(p), "--require", "PROMOTE")
     assert r.returncode == 0, r.stderr
-    assert "serving-verdict:" in r.stderr  # diagnostics on stderr only
+    assert "llm-serve-verdict:" in r.stderr  # diagnostics on stderr only
 
 
 def test_gate_reject_require_promote_exit_5(tmp_path: Path) -> None:
@@ -261,7 +261,7 @@ def test_gate_json_stdout_exactly_one_object(tmp_path: Path) -> None:
     assert payload["exit_code"] == 0
     assert payload["reason"] == "requirement satisfied"
     # stderr is diagnostics, never part of the JSON contract
-    assert "serving-verdict:" not in r.stdout
+    assert "llm-serve-verdict:" not in r.stdout
     assert r.stdout.count("schema_version") == 1
 
 
@@ -287,7 +287,7 @@ def test_gate_non_json_mode_stdout_empty(tmp_path: Path) -> None:
         r = run_cli("gate", str(p), "--require", "PROMOTE")
         assert r.stdout == "", (verdict, r.stdout)
         assert r.returncode == code
-        assert "serving-verdict: gate" in r.stderr
+        assert "llm-serve-verdict: gate" in r.stderr
 
 
 # ---------------------------------------------------------------------------
