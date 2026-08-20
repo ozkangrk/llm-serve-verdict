@@ -352,3 +352,11 @@ def test_yaml_roundtrip_stable_for_real_workflows() -> None:
         doc = check_workflows.parse_workflow(path)
         assert isinstance(doc, dict)
         assert "jobs" in doc
+
+
+def test_secret_scan_has_full_history_and_pr_token() -> None:
+    text = (REPO_ROOT / ".github" / "workflows" / "secret-scan.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "fetch-depth: 0" in text
+    assert "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in text
