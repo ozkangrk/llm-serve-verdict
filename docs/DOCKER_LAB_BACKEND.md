@@ -13,7 +13,7 @@ Implemented and tested:
 - server-process enablement via `SERVING_VERDICT_ENABLE_LAB=1`;
 - exact digest-pinned image binding and local-digest reuse;
 - NVIDIA runtime capability inspection;
-- internal labelled network creation;
+- dedicated labelled bridge creation with loopback-only host ingress;
 - hardened container-create argv;
 - loopback-only allocator-selected published port;
 - HTTP readiness and metrics URLs;
@@ -60,6 +60,12 @@ The backend has no public methods for:
 - host network/PID/IPC;
 - privileged mode or added Linux capabilities.
 
+Docker Engine 29.2.1 does not apply host port publishing to an `--internal`
+bridge. The backend therefore uses a normal dedicated bridge and restricts host
+ingress with an explicit `127.0.0.1` binding. It does not claim daemon-level
+egress isolation; images are pulled before container creation and model data is
+provided by a local read-only mount.
+
 ## Hardened container contract
 
 The generated `docker create` command includes:
@@ -73,7 +79,10 @@ The generated `docker create` command includes:
 --memory=<bounded bytes>
 --pids-limit=512
 --shm-size=<bounded bytes>
---tmpfs=/tmp:rw,noexec,nosuid,size=<bounded bytes>
+--tmpfs=/tmp:rw,nosuid,size=<bounded bytes>
+--tmpfs=/root/.cache:rw,nosuid,size=<bounded bytes>
+--env=HF_HUB_OFFLINE=1
+--env=TRANSFORMERS_OFFLINE=1
 --mount=type=bind,src=<operator model dir>,dst=/models/current,readonly
 --publish=127.0.0.1::<template port>
 --entrypoint=<trusted template executable>
