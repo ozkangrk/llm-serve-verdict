@@ -259,6 +259,74 @@ def _cmd_verify(args: argparse.Namespace) -> int:
         else:
             _diag(str(exc))
         return 2
+
+    is_v04 = bundle.get("schema_version") == "serving-verdict.bundle.v0.4"
+    if is_v04:
+        if args.archive:
+            _diag("--archive verification is only defined for compatibility bundles")
+            return 2
+        try:
+            if args.trust_store is not None:
+                from serving_verdict.signing import load_trust_store
+
+                store = load_trust_store(args.trust_store)
+            else:
+                store = None
+            if args.require_signature or store is not None:
+                from serving_verdict.signing import verify_signed_bundle
+
+                report = verify_signed_bundle(
+                    bundle,
+                    store=store,
+                    require_signed=True if args.require_signature else None,
+                )
+            else:
+                from serving_verdict.bundle_v04 import verify_v04_bundle
+
+                digest_report = verify_v04_bundle(bundle)
+                report = {
+                    "status": "valid",
+                    "digest": digest_report["digest"],
+                    "digest_valid": True,
+                    "signature_present": bundle.get("signature") is not None,
+                    "signature_valid": False,
+                    "signer_trusted": False,
+                    "signer": None,
+                    "key_id": None,
+                    "offline": True,
+                }
+        except UsageError as exc:
+            if args.json:
+                _emit_json({"valid": False, "error": str(exc)})
+            else:
+                _diag(str(exc))
+            return 2
+        except IntegrityError as exc:
+            error_payload = {"valid": False, "error": str(exc)}
+            code = getattr(exc, "code", None)
+            if code is not None:
+                error_payload["code"] = code
+            if args.json:
+                _emit_json(error_payload)
+            else:
+                _diag(f"signature/integrity verification failed: {exc}")
+            return 4
+        v04_payload = {
+            "valid": True,
+            "case_id": bundle["case"]["case_id"],
+            "verdict": bundle["verdict"],
+            **report,
+        }
+        _emit_json(v04_payload)
+        return 0
+
+    if args.require_signature or args.trust_store is not None:
+        error = "SIGNATURE_MISSING: compatibility bundle has no v0.4 signature"
+        if args.json:
+            _emit_json({"valid": False, "code": "SIGNATURE_MISSING", "error": error})
+        else:
+            _diag(error)
+        return 4
     try:
         report = verify_bundle(bundle)
     except IntegrityError as exc:
@@ -300,6 +368,64 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     else:
         suffix = f", {payload['artifacts_verified']} archived artifact(s)" if args.archive else ""
         _diag(f"verified {bundle['case_id']} ({bundle['verdict']}): {report['digest']}{suffix}")
+    return 0
+
+
+def _cmd_sign(args: argparse.Namespace) -> int:
+    """Sign one valid v0.4 bundle with an environment-only Ed25519 seed."""
+    try:
+        bundle = load_bundle(Path(args.bundle))
+    except UsageError as exc:
+        _diag(str(exc))
+        return 2
+    if bundle.get("schema_version") != "serving-verdict.bundle.v0.4":
+        _diag("sign requires a serving-verdict.bundle.v0.4 document")
+        return 2
+    seed = os.environ.get(args.key_env)
+    if not seed:
+        _diag(f"signing key environment variable is not set: {args.key_env}")
+        return 2
+    try:
+        from serving_verdict.signing import (
+            SignerIdentity,
+            key_id_for_public_key,
+            load_ed25519_private_key_from_seed_hex,
+            public_key_bytes_of,
+            sign_bundle,
+        )
+
+        private_key = load_ed25519_private_key_from_seed_hex(seed)
+        identity = SignerIdentity(
+            private_key=private_key,
+            key_id=key_id_for_public_key(public_key_bytes_of(private_key)),
+            signer=args.signer,
+        )
+        signed = sign_bundle(bundle, identity=identity)
+    except (UsageError, IntegrityError) as exc:
+        _diag(f"cannot sign bundle: {exc}")
+        return 2
+    out = Path(args.out)
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
+            json.dumps(signed, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        _diag(f"cannot write signed bundle: {exc}")
+        return 2
+    payload = {
+        "signed": True,
+        "case_id": signed["case"]["case_id"],
+        "digest": signed["digest"],
+        "signer": signed["signature"]["signer"],
+        "key_id": signed["signature"]["key_id"],
+        "out": str(out),
+    }
+    if args.json:
+        _emit_json(payload)
+    else:
+        _diag(f"signed {payload['case_id']} -> {out}")
     return 0
 
 
@@ -601,7 +727,25 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="also verify the archived artifacts (manifest next to the bundle)",
     )
+    p_verify.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="require a trusted v0.4 DSSE/Ed25519 verdict signature",
+    )
+    p_verify.add_argument(
+        "--trust-store",
+        default=None,
+        metavar="PATH",
+        help="strict local JSON trust store for offline signature verification",
+    )
     p_verify.add_argument("--json", action="store_true")
+
+    p_sign = sub.add_parser("sign", help="sign a valid v0.4 bundle offline")
+    p_sign.add_argument("bundle")
+    p_sign.add_argument("--key-env", required=True, metavar="ENV_NAME")
+    p_sign.add_argument("--signer", required=True)
+    p_sign.add_argument("--out", required=True)
+    p_sign.add_argument("--json", action="store_true")
 
     p_list = sub.add_parser("list", help="list verdict bundles in a data dir")
     p_list.add_argument("data_dir")
@@ -661,6 +805,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {
         "import-case": _cmd_import,
         "verify": _cmd_verify,
+        "sign": _cmd_sign,
         "list": _cmd_list,
         "show": _cmd_show,
         "demo": _cmd_demo,

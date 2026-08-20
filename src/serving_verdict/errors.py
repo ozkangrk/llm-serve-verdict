@@ -43,6 +43,17 @@ class IntegrityError(ServingVerdictError):
 
     exit_code = 4
 
+    #: Stable machine-readable failure code (v0.4 signature pipeline sets
+    #: DIGEST_INVALID / SIGNATURE_MISSING / SIGNATURE_INVALID /
+    #: UNTRUSTED_SIGNER / EVIDENCE_SIGNATURES_INVALID). Defaults to the
+    #: generic class so v0.1 callers are unaffected.
+    code: str = "INTEGRITY_FAILURE"
+
+    def __init__(self, message: str = "", code: str | None = None) -> None:
+        super().__init__(message)
+        if code is not None:
+            self.code = code
+
 
 class ArchiveError(ServingVerdictError):
     """Content-addressed artifact store operation failed (fail-closed).

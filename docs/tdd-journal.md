@@ -172,3 +172,19 @@ Fixes:
 
 The post-fix suite contains 121 tests. Final release gates are rerun after this
 entry and must all pass before commit.
+
+## v0.4 trust foundation — RED/GREEN cycles
+
+- **Bundle schema RED:** imports for `bundle_v04` and strict manifest/claim
+  parsing failed as expected. GREEN: 33 schema, digest, timestamp-binding and
+  deep-immutability tests.
+- **Signing RED:** DSSE/Ed25519 APIs were absent. GREEN: 28 offline signing,
+  trust-store, mutation, wrong-key/signer, algorithm-confusion and private-key
+  leak tests.
+- **CLI RED:** `sign` was an unknown command and signature verify flags were
+  rejected by argparse. GREEN: 15 CLI tests preserve v0.1 plain verification,
+  enforce v0.4 signature/trust semantics and stable exit codes 0/2/4.
+- Security decision: an unsigned bundle under trust-store policy is
+  `UNTRUSTED_SIGNER`; explicit `--require-signature` without a signature is
+  `SIGNATURE_MISSING`. `require_signed_evidence` stays fail-closed until an
+  evidence-signature backend exists.
