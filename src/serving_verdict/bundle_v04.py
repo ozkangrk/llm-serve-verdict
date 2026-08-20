@@ -434,7 +434,10 @@ def verify_v04_bundle(doc: Any) -> dict[str, Any]:
     actual = compute_v04_digest(doc)
     expected = doc["digest"]
     if actual != expected:
-        raise IntegrityError(f"bundle digest mismatch: recorded {expected}, recomputed {actual}")
+        raise IntegrityError(
+            f"bundle digest mismatch: recorded {expected}, recomputed {actual}",
+            code="DIGEST_INVALID",
+        )
     sig = doc["signature"]
     present = sig is not None and isinstance(sig, Mapping) and bool(sig)
     return {

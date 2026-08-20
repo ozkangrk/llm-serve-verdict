@@ -3,6 +3,8 @@
 Commands (MVP v0.1 + v0.2 portable trial backend):
     import-case CASE.yaml --out BUNDLE.json [--source-root DIR] [--archive DIR] [--json]
     verify BUNDLE.json [--archive] [--json]
+    gate BUNDLE --require PROMOTE [--require-signature --trust-store PATH]
+          [--fail-inconclusive] [--json] [--github-summary PATH]
     list DATA_DIR [--json]
     show BUNDLE.json [--json]
     demo [--out-dir DIR] [--json]
@@ -15,6 +17,10 @@ Commands (MVP v0.1 + v0.2 portable trial backend):
 Exit codes: 0 success (incl. valid REJECT/INCONCLUSIVE imports and passing
 verify); 2 usage/config/load error; 4 bundle/artifact integrity verification
 failure.
+``gate`` extends the stable CI contract (docs/CI_INTEGRATION.md):
+0 requirement satisfied; 2 usage/config/load; 4 integrity/signature/trust;
+5 valid REJECT / requirement not met; 6 valid INCONCLUSIVE only with
+--fail-inconclusive (otherwise 0 with blocked=false).
 JSON mode emits exactly one JSON object on stdout; diagnostics go to stderr.
 The data payload of `list`, `history` and `reindex` is emitted on stdout in
 BOTH modes (diagnostics only go to stderr).
@@ -31,6 +37,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from serving_verdict.ci_gate import VALID_REQUIREMENTS as ci_gate_REQUIREMENTS
 from serving_verdict.engine import (
     BUNDLE_SCHEMA_VERSION,
     import_case,
@@ -369,6 +376,90 @@ def _cmd_verify(args: argparse.Namespace) -> int:
         suffix = f", {payload['artifacts_verified']} archived artifact(s)" if args.archive else ""
         _diag(f"verified {bundle['case_id']} ({bundle['verdict']}): {report['digest']}{suffix}")
     return 0
+
+
+def _cmd_gate(args: argparse.Namespace) -> int:
+    """Stable production CI promotion gate (FR-7).
+
+    Verifies the bundle through the existing integrity/signature/trust
+    paths FIRST, then evaluates the sealed verdict against --require.
+    Never trusts a client-claimed verdict outside the digest-sealed doc.
+    """
+    from serving_verdict import ci_gate
+
+    bundle_path = Path(args.bundle)
+    try:
+        bundle = load_bundle(bundle_path)
+    except UsageError as exc:
+        _gate_error(args.json, str(exc), case_id=None)
+        return 2
+
+    store = None
+    if args.trust_store is not None:
+        from serving_verdict.signing import load_trust_store
+
+        try:
+            store = load_trust_store(args.trust_store)
+        except UsageError as exc:
+            _gate_error(args.json, f"trust store error: {exc}", case_id=None)
+            return 2
+
+    try:
+        outcome = ci_gate.gate_bundle(
+            bundle,
+            required_verdict=args.require,
+            fail_inconclusive=args.fail_inconclusive,
+            store=store,
+            require_signed=args.require_signature,
+        )
+    except UsageError as exc:
+        _gate_error(
+            args.json, str(exc), case_id=ci_gate._extract_case_id(bundle)
+        )
+        return 2
+    except IntegrityError as exc:
+        outcome = ci_gate.GateOutcome.integrity_failure(
+            case_id=ci_gate._extract_case_id(bundle),
+            bundle_version=str(bundle.get("schema_version", ""))[:64],
+            error=str(exc),
+            code=getattr(exc, "code", "INTEGRITY_FAILURE"),
+        )
+
+    if args.github_summary is not None:
+        try:
+            ci_gate.write_github_summary(outcome, args.github_summary)
+        except UsageError as exc:
+            _gate_error(args.json, str(exc), case_id=outcome.case_id or None)
+            return 2
+
+    if args.json:
+        _emit_json(outcome.to_json_dict())
+    else:
+        suffix = f" -> {args.github_summary}" if args.github_summary else ""
+        _diag(
+            f"gate {outcome.case_id or '<unknown>'} ({outcome.verdict or 'n/a'}"
+            f", require={outcome.required}): {outcome.reason} "
+            f"[exit {outcome.exit_code}]{suffix}"
+        )
+    return outcome.exit_code
+
+
+def _gate_error(json_mode: bool, message: str, case_id: str | None) -> None:
+    """Emit the usage-error payload for `gate` (one JSON object on stdout)."""
+    if json_mode:
+        payload: dict[str, Any] = {
+            "schema_version": "serving-verdict.gate-result.v0.1",
+            "command": "gate",
+            "case_id": case_id or "",
+            "blocked": False,
+            "decision": "ERROR",
+            "exit_code": 2,
+            "reason": f"usage/config error: {message}",
+            "error": message,
+        }
+        _emit_json(payload)
+    else:
+        _diag(f"gate: {message}")
 
 
 def _cmd_sign(args: argparse.Namespace) -> int:
@@ -740,6 +831,42 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_verify.add_argument("--json", action="store_true")
 
+    p_gate = sub.add_parser(
+        "gate",
+        help="stable production CI promotion gate (verify, then require a verdict)",
+    )
+    p_gate.add_argument("bundle")
+    p_gate.add_argument(
+        "--require",
+        required=True,
+        choices=sorted(ci_gate_REQUIREMENTS),
+        metavar="VERDICT",
+        help="deployment requirement: any non-required verdict blocks deployment",
+    )
+    p_gate.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="require a trusted v0.4 DSSE/Ed25519 verdict signature (v0.4 only)",
+    )
+    p_gate.add_argument(
+        "--trust-store",
+        default=None,
+        metavar="PATH",
+        help="strict local JSON trust store for offline signature verification",
+    )
+    p_gate.add_argument(
+        "--fail-inconclusive",
+        action="store_true",
+        help="exit 6 on a valid INCONCLUSIVE verdict (default: exit 0, blocked=false)",
+    )
+    p_gate.add_argument(
+        "--github-summary",
+        default=None,
+        metavar="PATH",
+        help="write a bounded, escaped GitHub markdown summary (no raw evidence)",
+    )
+    p_gate.add_argument("--json", action="store_true")
+
     p_sign = sub.add_parser("sign", help="sign a valid v0.4 bundle offline")
     p_sign.add_argument("bundle")
     p_sign.add_argument("--key-env", required=True, metavar="ENV_NAME")
@@ -805,6 +932,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {
         "import-case": _cmd_import,
         "verify": _cmd_verify,
+        "gate": _cmd_gate,
         "sign": _cmd_sign,
         "list": _cmd_list,
         "show": _cmd_show,
