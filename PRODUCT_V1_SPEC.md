@@ -272,12 +272,30 @@ DRAFT → PREFLIGHT → WARMUP → MEASURE → GRADE → SEALED
 - Loopback Automation Wizard with bounded ephemeral jobs, progress and
   cooperative cancellation/result discard.
 
-### Future work (not part of the v0.3 claim)
+### v0.4 — Trustworthy promotion authority (implemented)
+
+- Repeated-trial deterministic bootstrap confidence intervals and explicit
+  statistical uncertainty.
+- Structured evidence manifest and claim boundary in bundle schema v0.4.
+- Offline DSSE + Ed25519 signing, local trust policy and required-signature
+  verification.
+- Formal adapter SDK with strict experimental vLLM, SGLang and GuideLLM adapters.
+- Stable CI promotion gate, GitHub Action and repository/release security
+  hardening.
+
+### v0.5 — Inference Lab (foundation implemented; execution/UI in progress)
+
+- Digest-pinned inert runtime templates and pure typed planning.
+- Owned lifecycle state machine with cleanup proof and honest cancellation.
+- Bounded Prometheus-text telemetry normalization and ring buffer.
+- Real opt-in Docker/GPU backend, Lab/Live/Decide APIs and final UI remain
+  release gates and are not part of the v0.4 execution claim.
+
+### Future work
 
 - A larger standard benchmark profile.
 - Persisted automation-job history (current jobs are intentionally ephemeral).
-- Dedicated structured Doctor/Capacity/Advisor forms in the UI; v0.3 exposes
-  their package APIs and capability cards.
+- Real Docker/GPU Inference Lab E2E and external AIPerf orchestration.
 - PyPI trusted publishing and Windows support.
 
 ## Release claim boundary

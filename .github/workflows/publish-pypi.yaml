@@ -49,10 +49,10 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
         with:
           version: "0.7"
           enable-cache: true
@@ -108,7 +108,7 @@ jobs:
           /tmp/wheel-venv/bin/python -c "import importlib.metadata as m, serving_verdict as s; assert s.__version__ == m.version('serving-verdict'), (s.__version__, m.version('serving-verdict'))"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist-publish
           path: dist/
@@ -121,7 +121,7 @@ jobs:
     environment: pypi
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: dist-publish
           path: dist/
@@ -130,5 +130,10 @@ jobs:
       # GitHub's built-in PyPI trusted publishing (OIDC) when no password
       # is given. If trusted publishing is not yet configured, it fails
       # with a clear error and the release can be retried after setup.
+      #
+      # Pinned to the v1.14.2 commit SHA (verified against the official
+      # pypa/gh-action-pypi-publish repository on 2026-08-20) instead of a
+      # floating tag. If a newer release is adopted, re-verify the SHA and
+      # update both this file and PINNED_REFS in scripts/check_workflows.py.
       - name: Publish
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2

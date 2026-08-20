@@ -3,6 +3,8 @@
 Commands (MVP v0.1 + v0.2 portable trial backend):
     import-case CASE.yaml --out BUNDLE.json [--source-root DIR] [--archive DIR] [--json]
     verify BUNDLE.json [--archive] [--json]
+    gate BUNDLE --require PROMOTE [--require-signature --trust-store PATH]
+          [--fail-inconclusive] [--json] [--github-summary PATH]
     list DATA_DIR [--json]
     show BUNDLE.json [--json]
     demo [--out-dir DIR] [--json]
@@ -15,6 +17,10 @@ Commands (MVP v0.1 + v0.2 portable trial backend):
 Exit codes: 0 success (incl. valid REJECT/INCONCLUSIVE imports and passing
 verify); 2 usage/config/load error; 4 bundle/artifact integrity verification
 failure.
+``gate`` extends the stable CI contract (docs/CI_INTEGRATION.md):
+0 requirement satisfied; 2 usage/config/load; 4 integrity/signature/trust;
+5 valid REJECT / requirement not met; 6 valid INCONCLUSIVE only with
+--fail-inconclusive (otherwise 0 with blocked=false).
 JSON mode emits exactly one JSON object on stdout; diagnostics go to stderr.
 The data payload of `list`, `history` and `reindex` is emitted on stdout in
 BOTH modes (diagnostics only go to stderr).
@@ -31,6 +37,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from serving_verdict.ci_gate import VALID_REQUIREMENTS as ci_gate_REQUIREMENTS
 from serving_verdict.engine import (
     BUNDLE_SCHEMA_VERSION,
     import_case,
@@ -53,6 +60,9 @@ DEFAULT_DATA_DIR = "data"
 
 
 def _emit_json(obj: Any) -> None:
+    # Public machine-output sink. Signing paths expose only the DSSE signature,
+    # public-key-derived key ID and bounded status fields; the environment-only
+    # Ed25519 seed is never part of `obj` (covered by signing/CLI leak tests).
     sys.stdout.write(json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
 
@@ -259,6 +269,74 @@ def _cmd_verify(args: argparse.Namespace) -> int:
         else:
             _diag(str(exc))
         return 2
+
+    is_v04 = bundle.get("schema_version") == "serving-verdict.bundle.v0.4"
+    if is_v04:
+        if args.archive:
+            _diag("--archive verification is only defined for compatibility bundles")
+            return 2
+        try:
+            if args.trust_store is not None:
+                from serving_verdict.signing import load_trust_store
+
+                store = load_trust_store(args.trust_store)
+            else:
+                store = None
+            if args.require_signature or store is not None:
+                from serving_verdict.signing import verify_signed_bundle
+
+                report = verify_signed_bundle(
+                    bundle,
+                    store=store,
+                    require_signed=True if args.require_signature else None,
+                )
+            else:
+                from serving_verdict.bundle_v04 import verify_v04_bundle
+
+                digest_report = verify_v04_bundle(bundle)
+                report = {
+                    "status": "valid",
+                    "digest": digest_report["digest"],
+                    "digest_valid": True,
+                    "signature_present": bundle.get("signature") is not None,
+                    "signature_valid": False,
+                    "signer_trusted": False,
+                    "signer": None,
+                    "key_id": None,
+                    "offline": True,
+                }
+        except UsageError as exc:
+            if args.json:
+                _emit_json({"valid": False, "error": str(exc)})
+            else:
+                _diag(str(exc))
+            return 2
+        except IntegrityError as exc:
+            error_payload = {"valid": False, "error": str(exc)}
+            code = getattr(exc, "code", None)
+            if code is not None:
+                error_payload["code"] = code
+            if args.json:
+                _emit_json(error_payload)
+            else:
+                _diag(f"signature/integrity verification failed: {exc}")
+            return 4
+        v04_payload = {
+            "valid": True,
+            "case_id": bundle["case"]["case_id"],
+            "verdict": bundle["verdict"],
+            **report,
+        }
+        _emit_json(v04_payload)
+        return 0
+
+    if args.require_signature or args.trust_store is not None:
+        error = "SIGNATURE_MISSING: compatibility bundle has no v0.4 signature"
+        if args.json:
+            _emit_json({"valid": False, "code": "SIGNATURE_MISSING", "error": error})
+        else:
+            _diag(error)
+        return 4
     try:
         report = verify_bundle(bundle)
     except IntegrityError as exc:
@@ -300,6 +378,148 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     else:
         suffix = f", {payload['artifacts_verified']} archived artifact(s)" if args.archive else ""
         _diag(f"verified {bundle['case_id']} ({bundle['verdict']}): {report['digest']}{suffix}")
+    return 0
+
+
+def _cmd_gate(args: argparse.Namespace) -> int:
+    """Stable production CI promotion gate (FR-7).
+
+    Verifies the bundle through the existing integrity/signature/trust
+    paths FIRST, then evaluates the sealed verdict against --require.
+    Never trusts a client-claimed verdict outside the digest-sealed doc.
+    """
+    from serving_verdict import ci_gate
+
+    bundle_path = Path(args.bundle)
+    try:
+        bundle = load_bundle(bundle_path)
+    except UsageError as exc:
+        _gate_error(args.json, str(exc), case_id=None)
+        return 2
+
+    store = None
+    if args.trust_store is not None:
+        from serving_verdict.signing import load_trust_store
+
+        try:
+            store = load_trust_store(args.trust_store)
+        except UsageError as exc:
+            _gate_error(args.json, f"trust store error: {exc}", case_id=None)
+            return 2
+
+    try:
+        outcome = ci_gate.gate_bundle(
+            bundle,
+            required_verdict=args.require,
+            fail_inconclusive=args.fail_inconclusive,
+            store=store,
+            require_signed=args.require_signature,
+        )
+    except UsageError as exc:
+        _gate_error(
+            args.json, str(exc), case_id=ci_gate._extract_case_id(bundle)
+        )
+        return 2
+    except IntegrityError as exc:
+        outcome = ci_gate.GateOutcome.integrity_failure(
+            case_id=ci_gate._extract_case_id(bundle),
+            bundle_version=str(bundle.get("schema_version", ""))[:64],
+            error=str(exc),
+            code=getattr(exc, "code", "INTEGRITY_FAILURE"),
+        )
+
+    if args.github_summary is not None:
+        try:
+            ci_gate.write_github_summary(outcome, args.github_summary)
+        except UsageError as exc:
+            _gate_error(args.json, str(exc), case_id=outcome.case_id or None)
+            return 2
+
+    if args.json:
+        _emit_json(outcome.to_json_dict())
+    else:
+        suffix = f" -> {args.github_summary}" if args.github_summary else ""
+        _diag(
+            f"gate {outcome.case_id or '<unknown>'} ({outcome.verdict or 'n/a'}"
+            f", require={outcome.required}): {outcome.reason} "
+            f"[exit {outcome.exit_code}]{suffix}"
+        )
+    return outcome.exit_code
+
+
+def _gate_error(json_mode: bool, message: str, case_id: str | None) -> None:
+    """Emit the usage-error payload for `gate` (one JSON object on stdout)."""
+    if json_mode:
+        payload: dict[str, Any] = {
+            "schema_version": "serving-verdict.gate-result.v0.1",
+            "command": "gate",
+            "case_id": case_id or "",
+            "blocked": False,
+            "decision": "ERROR",
+            "exit_code": 2,
+            "reason": f"usage/config error: {message}",
+            "error": message,
+        }
+        _emit_json(payload)
+    else:
+        _diag(f"gate: {message}")
+
+
+def _cmd_sign(args: argparse.Namespace) -> int:
+    """Sign one valid v0.4 bundle with an environment-only Ed25519 seed."""
+    try:
+        bundle = load_bundle(Path(args.bundle))
+    except UsageError as exc:
+        _diag(str(exc))
+        return 2
+    if bundle.get("schema_version") != "serving-verdict.bundle.v0.4":
+        _diag("sign requires a serving-verdict.bundle.v0.4 document")
+        return 2
+    seed = os.environ.get(args.key_env)
+    if not seed:
+        _diag(f"signing key environment variable is not set: {args.key_env}")
+        return 2
+    try:
+        from serving_verdict.signing import (
+            SignerIdentity,
+            key_id_for_public_key,
+            load_ed25519_private_key_from_seed_hex,
+            public_key_bytes_of,
+            sign_bundle,
+        )
+
+        private_key = load_ed25519_private_key_from_seed_hex(seed)
+        identity = SignerIdentity(
+            private_key=private_key,
+            key_id=key_id_for_public_key(public_key_bytes_of(private_key)),
+            signer=args.signer,
+        )
+        signed = sign_bundle(bundle, identity=identity)
+    except (UsageError, IntegrityError) as exc:
+        _diag(f"cannot sign bundle: {exc}")
+        return 2
+    out = Path(args.out)
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
+            json.dumps(signed, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        _diag(f"cannot write signed bundle: {exc}")
+        return 2
+    payload = {
+        "signed": True,
+        "case_id": signed["case"]["case_id"],
+        "digest": signed["digest"],
+        "signer": signed["signature"]["signer"],
+        "key_id": signed["signature"]["key_id"],
+        "out": str(out),
+    }
+    if args.json:
+        _emit_json(payload)
+    else:
+        _diag(f"signed {payload['case_id']} -> {out}")
     return 0
 
 
@@ -601,7 +821,61 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="also verify the archived artifacts (manifest next to the bundle)",
     )
+    p_verify.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="require a trusted v0.4 DSSE/Ed25519 verdict signature",
+    )
+    p_verify.add_argument(
+        "--trust-store",
+        default=None,
+        metavar="PATH",
+        help="strict local JSON trust store for offline signature verification",
+    )
     p_verify.add_argument("--json", action="store_true")
+
+    p_gate = sub.add_parser(
+        "gate",
+        help="stable production CI promotion gate (verify, then require a verdict)",
+    )
+    p_gate.add_argument("bundle")
+    p_gate.add_argument(
+        "--require",
+        required=True,
+        choices=sorted(ci_gate_REQUIREMENTS),
+        metavar="VERDICT",
+        help="deployment requirement: any non-required verdict blocks deployment",
+    )
+    p_gate.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="require a trusted v0.4 DSSE/Ed25519 verdict signature (v0.4 only)",
+    )
+    p_gate.add_argument(
+        "--trust-store",
+        default=None,
+        metavar="PATH",
+        help="strict local JSON trust store for offline signature verification",
+    )
+    p_gate.add_argument(
+        "--fail-inconclusive",
+        action="store_true",
+        help="exit 6 on a valid INCONCLUSIVE verdict (default: exit 0, blocked=false)",
+    )
+    p_gate.add_argument(
+        "--github-summary",
+        default=None,
+        metavar="PATH",
+        help="write a bounded, escaped GitHub markdown summary (no raw evidence)",
+    )
+    p_gate.add_argument("--json", action="store_true")
+
+    p_sign = sub.add_parser("sign", help="sign a valid v0.4 bundle offline")
+    p_sign.add_argument("bundle")
+    p_sign.add_argument("--key-env", required=True, metavar="ENV_NAME")
+    p_sign.add_argument("--signer", required=True)
+    p_sign.add_argument("--out", required=True)
+    p_sign.add_argument("--json", action="store_true")
 
     p_list = sub.add_parser("list", help="list verdict bundles in a data dir")
     p_list.add_argument("data_dir")
@@ -661,6 +935,8 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {
         "import-case": _cmd_import,
         "verify": _cmd_verify,
+        "gate": _cmd_gate,
+        "sign": _cmd_sign,
         "list": _cmd_list,
         "show": _cmd_show,
         "demo": _cmd_demo,

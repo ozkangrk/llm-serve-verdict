@@ -1,0 +1,51 @@
+name: Dependency Audit
+
+# Dependency vulnerability scanning (RR-3) using a version-pinned pip-audit.
+# `uv export --frozen` materializes the exact committed lock as hash-pinned
+# requirements; pip-audit checks that set against the PyPI advisory service.
+# Least-privilege: read contents only.
+#
+# NOTE: pip-audit queries advisory data at run time, so this
+# job requires network access to github.com's runners (standard); the local
+# unit test suite itself never touches the network.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # weekly audit so new advisory data is applied even without pushes
+    - cron: "43 4 * * 3"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: audit (pip-audit, frozen lockfile)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+        with:
+          version: "0.7"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Export exact frozen dependency set
+        run: >-
+          uv --quiet export --frozen --all-extras --no-emit-project
+          --format requirements-txt
+          --output-file "${RUNNER_TEMP}/serving-verdict-audit.txt"
+
+      - name: Audit hash-pinned dependencies
+        run: >-
+          uvx --from pip-audit==2.9.0 pip-audit
+          --requirement "${RUNNER_TEMP}/serving-verdict-audit.txt"
+          --require-hashes --strict --progress-spinner=off

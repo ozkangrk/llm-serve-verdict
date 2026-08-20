@@ -210,6 +210,8 @@
   /* ------------------------------- index ------------------------------- */
 
   function renderIndex() {
+    $("nav-verdicts").setAttribute("aria-current", "page");
+    $("nav-automation").setAttribute("aria-current", "false");
     $("index-view").classList.remove("hidden");
     $("detail-view").classList.add("hidden");
     $("error-view").classList.add("hidden");
@@ -541,6 +543,8 @@
   /* --------------------------- automation wizard --------------------------- */
 
   function showAutomation() {
+    $("nav-automation").setAttribute("aria-current", "page");
+    $("nav-verdicts").setAttribute("aria-current", "false");
     $("index-view").classList.add("hidden");
     $("detail-view").classList.add("hidden");
     $("error-view").classList.add("hidden");

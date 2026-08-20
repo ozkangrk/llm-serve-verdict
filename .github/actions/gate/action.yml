@@ -1,0 +1,76 @@
+name: Serving Verdict promotion gate
+description: Verify a sealed verdict bundle and enforce a deployment requirement
+inputs:
+  bundle:
+    description: Path to the verdict bundle in the checked-out repository
+    required: true
+  require:
+    description: Required verdict
+    required: false
+    default: PROMOTE
+  fail-inconclusive:
+    description: Return exit 6 for a valid INCONCLUSIVE verdict
+    required: false
+    default: "true"
+  require-signature:
+    description: Require a trusted v0.4 signature
+    required: false
+    default: "false"
+  trust-store:
+    description: Optional local trust-store path
+    required: false
+    default: ""
+outputs:
+  verdict:
+    description: Verified sealed verdict
+    value: ${{ steps.gate.outputs.verdict }}
+  decision:
+    description: Gate decision
+    value: ${{ steps.gate.outputs.decision }}
+  reason:
+    description: Bounded structural reason
+    value: ${{ steps.gate.outputs.reason }}
+  result-digest:
+    description: Canonical gate-result digest
+    value: ${{ steps.gate.outputs.result_digest }}
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+    - id: gate
+      shell: bash
+      env:
+        SV_BUNDLE: ${{ inputs.bundle }}
+        SV_REQUIRE: ${{ inputs.require }}
+        SV_FAIL_INCONCLUSIVE: ${{ inputs.fail-inconclusive }}
+        SV_REQUIRE_SIGNATURE: ${{ inputs.require-signature }}
+        SV_TRUST_STORE: ${{ inputs.trust-store }}
+      run: |
+        set -uo pipefail
+        result_file="${RUNNER_TEMP}/serving-verdict-gate.json"
+        args=(gate "${SV_BUNDLE}" --require "${SV_REQUIRE}" --json --github-summary "${GITHUB_STEP_SUMMARY}")
+        case "${SV_FAIL_INCONCLUSIVE,,}" in
+          true|1|yes) args+=(--fail-inconclusive) ;;
+          false|0|no) ;;
+          *) echo "invalid fail-inconclusive boolean" >&2; exit 2 ;;
+        esac
+        case "${SV_REQUIRE_SIGNATURE,,}" in
+          true|1|yes) args+=(--require-signature) ;;
+          false|0|no) ;;
+          *) echo "invalid require-signature boolean" >&2; exit 2 ;;
+        esac
+        if [[ -n "${SV_TRUST_STORE}" ]]; then args+=(--trust-store "${SV_TRUST_STORE}"); fi
+        set +e
+        uv run --frozen serving-verdict "${args[@]}" >"${result_file}"
+        gate_rc=$?
+        set -e
+        python - "${result_file}" "${GITHUB_OUTPUT}" <<'PY'
+        import json, pathlib, sys
+        result = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+        allowed = ("verdict", "decision", "reason", "result_digest")
+        with pathlib.Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+            for key in allowed:
+                value = str(result.get(key, "")).replace("\r", " ").replace("\n", " ")[:500]
+                output.write(f"{key}={value}\n")
+        PY
+        exit "${gate_rc}"

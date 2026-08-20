@@ -8,6 +8,55 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 No unreleased user-facing changes.
 
+## [0.4.0] — 2026-08-20
+
+### Added
+
+- Repeated-trial statistical engine with deterministic seeded bootstrap
+  confidence intervals, explicit sample-size/uncertainty outcomes, direction-
+  aware effects and sealed statistical artifacts.
+- Structured `serving-verdict.bundle.v0.4` evidence manifest and claim boundary.
+- Offline DSSE + Ed25519 verdict signing, strict local trust stores and
+  `verify --require-signature` with distinct integrity/trust failure codes.
+- Immutable adapter SDK plus strict experimental vLLM, SGLang and GuideLLM
+  saved-result adapters with upstream commit-pinned semantic documentation.
+- Stable `gate --require PROMOTE` CI contract, exit codes 0/2/4/5/6, bounded
+  GitHub summaries and a fail-closed composite GitHub Action.
+- CodeQL, dependency audit and secret-scan workflows; release SHA256SUMS and
+  GitHub build-provenance attestation foundation.
+- v0.5 Inference Lab preview foundation: digest-pinned inert runtime templates,
+  pure typed planner/model manifest, owned lifecycle cleanup state machine and
+  bounded Prometheus-text telemetry normalization.
+- v0.5 architecture SVG/HTML and normative Inference Lab product/runtime spec.
+
+### Changed
+
+- Package version is `0.4.0`.
+- Promotion claims now distinguish digest integrity from signer authenticity.
+- Runtime, adapter, statistics, trust and CI behavior are documented as stable
+  machine-facing contracts with explicit residual limitations.
+
+### Verification
+
+- Integrated collection: 962 tests.
+- Ruff and mypy over 51 source files; sdist and wheel build.
+- Python 3.11 cross-version statistics golden verification.
+- Independent fail-closed reviews closed every reported HIGH/MEDIUM finding in
+  statistics, signing/trust, adapters, runtime planning, lifecycle, telemetry
+  and CI-gate slices before integration.
+
+### Claim boundaries
+
+- DSSE + Ed25519 is offline allowlist verification; no Sigstore transparency,
+  OIDC identity, revocation or timestamp-authority claim.
+- Ecosystem adapters are experimental because upstream saved-result formats do
+  not all provide stable versioned JSON schemas.
+- Inference Lab Docker execution, Lab/Live/Decide APIs and real GPU E2E remain
+  v0.5 release work; v0.4 ships safe planning/lifecycle/telemetry foundations,
+  not a production container control plane.
+- Windows remains untested. PyPI trusted publishing remains intentionally
+  unconfigured.
+
 ## [0.3.0] — 2026-08-19
 
 ### Added

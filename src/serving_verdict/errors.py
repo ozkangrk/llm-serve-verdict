@@ -43,6 +43,17 @@ class IntegrityError(ServingVerdictError):
 
     exit_code = 4
 
+    #: Stable machine-readable failure code (v0.4 signature pipeline sets
+    #: DIGEST_INVALID / SIGNATURE_MISSING / SIGNATURE_INVALID /
+    #: UNTRUSTED_SIGNER / EVIDENCE_SIGNATURES_INVALID). Defaults to the
+    #: generic class so v0.1 callers are unaffected.
+    code: str = "INTEGRITY_FAILURE"
+
+    def __init__(self, message: str = "", code: str | None = None) -> None:
+        super().__init__(message)
+        if code is not None:
+            self.code = code
+
 
 class ArchiveError(ServingVerdictError):
     """Content-addressed artifact store operation failed (fail-closed).
@@ -90,6 +101,12 @@ class ArtifactIntegrityError(IntegrityError):
     exit_code = 4
 
 
+class StatisticalArtifactError(IntegrityError):
+    """A sealed statistical artifact failed schema, provenance, or digest verification."""
+
+    exit_code = 4
+
+
 class InconclusiveError(ServingVerdictError):
     """Evidence integrity/comparability problem that yields an INCONCLUSIVE bundle.
 
@@ -127,5 +144,17 @@ class ReplayError(ServingVerdictError):
 
 class GateError(ServingVerdictError):
     """CI regression gate configuration or usage error."""
+
+    exit_code = 2
+
+
+class StatisticalError(ServingVerdictError):
+    """Statistical verdict engine rejected its inputs (exit 2, no result).
+
+    Raised when a sample or spec violates the fail-closed contract:
+    empty or malformed samples, non-numeric/bool/non-finite/negative
+    values, or out-of-bounds spec fields. Nothing is computed and no
+    result or artifact is produced.
+    """
 
     exit_code = 2

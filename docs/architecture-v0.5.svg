@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980" role="img" aria-labelledby="title desc">
+<title id="title">Serving Verdict v0.5 Inference Lab architecture</title>
+<desc id="desc">Local Lab, Live telemetry and deterministic signed Decide pipeline with strict execution and trust boundaries.</desc>
+<defs>
+  <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#1b2336" stroke-width="1"/></pattern>
+  <linearGradient id="hero" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111a30"/><stop offset="1" stop-color="#09101e"/></linearGradient>
+  <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L9 3L0 6Z" fill="#71809f"/></marker>
+  <marker id="greenArrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L9 3L0 6Z" fill="#45d7a5"/></marker>
+  <style>
+    .t{font-family:Inter,Arial,sans-serif;fill:#edf3ff}.m{font-family:'JetBrains Mono',monospace;fill:#98a6c3}
+    .h{font-size:27px;font-weight:750;letter-spacing:-.5px}.sub{font-size:12px}.zone{font-size:12px;font-weight:700;letter-spacing:1.5px}
+    .name{font-size:14px;font-weight:700}.small{font-size:10px}.tiny{font-size:9px}.box{fill:#10192b;stroke-width:1.5}.flow{fill:none;stroke:#71809f;stroke-width:1.5;marker-end:url(#arrow)}
+    .trusted{fill:none;stroke:#45d7a5;stroke-width:2;marker-end:url(#greenArrow)}.dash{stroke-dasharray:6 6}.pill{font-size:9px;font-weight:700;letter-spacing:.7px}
+  </style>
+</defs>
+<rect width="1440" height="980" fill="#070b14"/><rect width="1440" height="980" fill="url(#grid)" opacity=".7"/>
+<rect x="28" y="24" width="1384" height="932" rx="20" fill="url(#hero)" stroke="#27334c"/>
+<circle cx="64" cy="62" r="6" fill="#45d7a5" filter="url(#glow)"/><text x="82" y="70" class="t h">Serving Verdict v0.5 · Inference Lab</text>
+<text x="64" y="94" class="m sub">START → MEASURE → SEAL → DECIDE · local-first · production non-mutation by default</text>
+<rect x="1110" y="48" width="260" height="30" rx="15" fill="#10261f" stroke="#2a8d6d"/><text x="1240" y="67" text-anchor="middle" class="t pill">SIGNED DECISION AUTHORITY</text>
+
+<!-- arrows first -->
+<path class="flow" d="M250 238V280"/><path class="flow" d="M720 238V280"/><path class="flow" d="M1190 238V280"/>
+<path class="flow" d="M250 400V448"/><path class="flow" d="M720 400V448"/><path class="flow" d="M1190 400V448"/>
+<path class="flow" d="M365 532H500"/><path class="flow" d="M840 532H980"/>
+<path class="flow" d="M1190 610V658"/><path class="flow" d="M720 610V658"/><path class="flow" d="M250 610V658"/>
+<path class="trusted" d="M365 744H505"/><path class="trusted" d="M840 744H980"/>
+<path class="trusted" d="M1190 826V850"/>
+<path class="flow dash" d="M500 584H375"/><path class="flow dash" d="M980 584H850"/>
+
+<!-- UX -->
+<text x="62" y="130" class="t zone" fill="#65d7ff">01 · PRODUCT WORKSPACES</text>
+<rect x="60" y="146" width="380" height="92" rx="12" class="box" stroke="#36c8f4"/>
+<text x="84" y="176" class="t name">LAB</text><text x="84" y="198" class="m small">template · model · typed flags · plan digest</text>
+<rect x="84" y="211" width="116" height="17" rx="8" fill="#0f3142"/><text x="142" y="223" text-anchor="middle" class="t tiny">explicit opt-in start</text>
+<rect x="530" y="146" width="380" height="92" rx="12" class="box" stroke="#a58bfa"/>
+<text x="554" y="176" class="t name">LIVE</text><text x="554" y="198" class="m small">lifecycle · TTFT/ITL · GPU/KV · bounded charts</text>
+<rect x="554" y="211" width="136" height="17" rx="8" fill="#292044"/><text x="622" y="223" text-anchor="middle" class="t tiny">UNMEASURABLE ≠ zero</text>
+<rect x="1000" y="146" width="380" height="92" rx="12" class="box" stroke="#45d7a5"/>
+<text x="1024" y="176" class="t name">DECIDE</text><text x="1024" y="198" class="m small">confidence · hard gates · trust · claim boundary</text>
+<rect x="1024" y="211" width="180" height="17" rx="8" fill="#102c24"/><text x="1114" y="223" text-anchor="middle" class="t tiny">PROMOTE / REJECT / INCONCLUSIVE</text>
+
+<!-- control -->
+<text x="62" y="270" class="t zone">02 · LOOPBACK CONTROL PLANE</text>
+<rect x="60" y="280" width="380" height="120" rx="12" class="box" stroke="#36c8f4"/>
+<text x="84" y="312" class="t name">Self-contained UI</text><text x="84" y="334" class="m small">HTML · CSS · JS · no CDN</text><text x="84" y="358" class="m tiny">keyboard · aria-live · 390px mobile · reduced motion</text>
+<rect x="530" y="280" width="380" height="120" rx="12" class="box" stroke="#5b9dff"/>
+<text x="554" y="312" class="t name">FastAPI /api/lab</text><text x="554" y="334" class="m small">plan · start · status · cancel · telemetry</text><text x="554" y="358" class="m tiny">disabled unless operator enables lab execution</text>
+<rect x="1000" y="280" width="380" height="120" rx="12" class="box" stroke="#fb7185"/>
+<text x="1024" y="312" class="t name">Ephemeral Job Boundary</text><text x="1024" y="334" class="m small">single-flight · TTL · bounded state</text><text x="1024" y="358" class="m tiny">browser cannot enable Docker or send secret values</text>
+
+<!-- execution boundary -->
+<rect x="48" y="430" width="1344" height="198" rx="16" fill="#091710" stroke="#2a8d6d" stroke-dasharray="8 6"/>
+<text x="68" y="456" class="t zone" fill="#45d7a5">03 · OPT-IN EXECUTION PLANE · ROOT-EQUIVALENT RISK BOUNDARY</text>
+<rect x="70" y="474" width="295" height="136" rx="10" class="box" stroke="#45d7a5"/>
+<text x="92" y="504" class="t name">Template + Pure Planner</text><text x="92" y="526" class="m small">image@sha256 · model manifest</text><text x="92" y="548" class="m small">typed argv · deterministic run ID</text><text x="92" y="576" class="m tiny">no arbitrary YAML · no shell · no side effects</text>
+<rect x="500" y="474" width="340" height="136" rx="10" class="box" stroke="#45d7a5"/>
+<text x="522" y="504" class="t name">Owned Lifecycle</text><text x="522" y="526" class="m small">pull → network → start → ready</text><text x="522" y="548" class="m small">benchmark → stop → remove → prove absent</text><text x="522" y="576" class="m tiny">owner/run/template fencing · CLEANUP_FAILED</text>
+<rect x="980" y="474" width="390" height="136" rx="10" class="box" stroke="#45d7a5"/>
+<text x="1002" y="504" class="t name">Narrow Docker Capability</text><text x="1002" y="526" class="m small">labelled container + private network only</text><text x="1002" y="548" class="m small">loopback port · read-only model mount · GPU request</text><text x="1002" y="576" class="m tiny">no exec/attach/privileged/host namespace/socket mount</text>
+
+<!-- measurement -->
+<text x="62" y="650" class="t zone" fill="#a58bfa">04 · MEASUREMENT &amp; EVIDENCE</text>
+<rect x="60" y="658" width="380" height="168" rx="12" class="box" stroke="#a58bfa"/>
+<text x="84" y="690" class="t name">Benchmark Orchestrator</text><text x="84" y="714" class="m small">warmup + repeated measured trials</text><text x="84" y="736" class="m small">quick · vLLM · SGLang · GuideLLM adapters</text><text x="84" y="764" class="m tiny">frozen workload/protocol · transport failure ≠ verdict</text>
+<rect x="530" y="658" width="380" height="168" rx="12" class="box" stroke="#a58bfa"/>
+<text x="554" y="690" class="t name">Bounded Live Telemetry</text><text x="554" y="714" class="m small">Prometheus text → allowlisted canonical series</text><text x="554" y="736" class="m small">64 KiB · 64 series · 3,600 samples</text><text x="554" y="764" class="m tiny">ring buffer · no raw body · no high-cardinality labels</text>
+<rect x="1000" y="658" width="380" height="168" rx="12" class="box" stroke="#a58bfa"/>
+<text x="1024" y="690" class="t name">Sealed Lab-run Artifact</text><text x="1024" y="714" class="m small">image · flags · model · GPU · runtime</text><text x="1024" y="736" class="m small">trial digests · telemetry · cleanup proof</text><text x="1024" y="764" class="m tiny">no host paths · prompts · output · logs · secrets</text>
+
+<!-- authority -->
+<rect x="48" y="850" width="1344" height="82" rx="14" fill="#10221c" stroke="#45d7a5"/>
+<text x="74" y="880" class="t zone" fill="#45d7a5">05 · PURE DECISION AUTHORITY</text>
+<text x="74" y="908" class="m small">semantic comparability → hard correctness/stability gates → deterministic bootstrap CI → policy → DSSE/Ed25519 signed bundle → CI gate</text>
+<rect x="1130" y="872" width="232" height="34" rx="17" fill="#173b30" stroke="#45d7a5"/><text x="1246" y="894" text-anchor="middle" class="t pill">DEPLOYMENT EVIDENCE, NOT OPINION</text>
+
+<text x="60" y="948" class="m tiny">Security boundary: production endpoints are read-only unless separately authorized · Decision core never imports Docker · every success requires cleanup proof</text>
+</svg>

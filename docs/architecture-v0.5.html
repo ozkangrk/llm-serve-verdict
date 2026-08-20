@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Serving Verdict v0.5 Architecture</title>
+<style>
+:root{color-scheme:dark;--bg:#070b14;--panel:#0d1423;--line:#27334c;--text:#edf3ff;--muted:#98a6c3;--green:#45d7a5;--cyan:#36c8f4;--violet:#a58bfa}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#18233d 0,var(--bg) 46%);color:var(--text);font:15px Inter,system-ui,sans-serif}
+main{width:min(1480px,100%);margin:auto;padding:36px 24px 54px}.eyebrow{font:700 11px ui-monospace,monospace;letter-spacing:1.6px;color:var(--green)}h1{font-size:clamp(34px,5vw,64px);line-height:1;margin:12px 0 16px;letter-spacing:-2px}.lead{max-width:850px;color:var(--muted);font-size:18px;line-height:1.6}.frame{margin-top:28px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#070b14;box-shadow:0 25px 80px #0008}.frame img{display:block;width:100%;height:auto}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}.card{border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,#111a2b,#0a101c);padding:20px}.card b{display:block;margin-bottom:8px}.card p{margin:0;color:var(--muted);line-height:1.5}.cyan b{color:var(--cyan)}.violet b{color:var(--violet)}.green b{color:var(--green)}footer{margin-top:28px;color:#65718b;font:11px ui-monospace,monospace}@media(max-width:760px){main{padding:24px 12px}.cards{grid-template-columns:1fr}.frame{overflow:auto}.frame img{min-width:980px}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">SERVING VERDICT · REFERENCE ARCHITECTURE</div>
+<h1>From runtime experiment<br>to signed promotion decision.</h1>
+<p class="lead">Inference Lab automates a disposable local serving experiment while preserving a small, pure decision authority. Docker, benchmark and telemetry produce evidence; they never decide.</p>
+<div class="frame"><img src="architecture-v0.5.svg" alt="Serving Verdict v0.5 Inference Lab architecture"></div>
+<section class="cards">
+<div class="card cyan"><b>Lab / Live / Decide</b><p>One understandable workflow: plan an exact runtime, watch bounded telemetry, then inspect the evidence-backed verdict.</p></div>
+<div class="card violet"><b>Evidence, not dashboards</b><p>External benchmark and Prometheus formats are normalized into immutable, semantically explicit artifacts.</p></div>
+<div class="card green"><b>Fail closed by construction</b><p>No mutable images, arbitrary shell, silent cleanup failures, unsigned promotion under required trust, or fake certainty.</p></div>
+</section>
+<footer>v0.5 · local-first · production non-mutation by default · no LLM in the verdict path</footer>
+</main></body></html>

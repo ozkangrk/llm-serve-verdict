@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "serving-verdict"
-version = "0.3.0"
+version = "0.4.0"
 description = "Local-first, evidence-driven PROMOTE/REJECT/INCONCLUSIVE decisions for LLM serving changes"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,6 +36,7 @@ dependencies = [
     "uvicorn>=0.29",
     "pyyaml>=6.0",
     "pydantic>=2.6",
+    "cryptography>=42.0",
 ]
 
 [project.urls]

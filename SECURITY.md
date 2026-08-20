@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---|---|
-| 0.3.x | ✅ |
+| 0.4.x | ✅ |
+| 0.3.x | ❌ (superseded) |
 | 0.2.x | ❌ (superseded) |
 | 0.1.x | ❌ (superseded) |
 

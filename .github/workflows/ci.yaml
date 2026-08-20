@@ -23,10 +23,10 @@ jobs:
         python: ["3.11", "3.12"]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
         with:
           version: "0.7"
           enable-cache: true
@@ -45,6 +45,9 @@ jobs:
 
       - name: Type check (mypy)
         run: uv run --frozen mypy src
+
+      - name: Validate workflows (pinning, least permissions, contracts)
+        run: uv run --frozen python scripts/check_workflows.py
 
       - name: Build distributions (sdist + wheel)
         run: uv build

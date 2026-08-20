@@ -8,8 +8,8 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><span class="dot" aria-hidden="true"></span>Serving Verdict</div>
-  <div class="topbar-sub">evidence-gated serving decisions &middot; read-only &middot; loopback</div>
+  <div class="brand"><span class="brand-mark" aria-hidden="true">SV</span><span>Serving Verdict</span></div>
+  <div class="topbar-sub"><span class="dot" aria-hidden="true"></span> local decision authority</div>
   <nav class="topnav" aria-label="Primary">
     <button id="nav-verdicts" class="btn" type="button">Verdicts</button>
     <button id="nav-automation" class="btn" type="button">Automation</button>
@@ -19,6 +19,7 @@
 <main>
   <!-- ===================== INDEX (list) ===================== -->
   <section id="index-view" aria-labelledby="list-heading">
+    <div class="page-kicker">DECISION AUTHORITY</div>
     <h1 id="list-heading">Verdicts</h1>
     <p class="muted">Bound, tamper-evident decisions from local inference evidence.
       Verdict first, always as a text label. <span id="verdict-count" class="verdict-count"></span></p>
@@ -128,11 +129,12 @@
 
   <!-- ===================== AUTOMATION WIZARD ===================== -->
   <section id="automation-view" class="hidden" aria-labelledby="automation-heading">
+    <div class="page-kicker">INFERENCE WORKSPACE</div>
     <h1 id="automation-heading">Automation Wizard</h1>
     <p class="muted">Connect a loopback OpenAI-compatible endpoint, run the frozen quick profile,
       and receive a sealed artifact. API keys stay server-side in environment variables.</p>
     <div class="automation-grid">
-      <section class="panel">
+      <section class="panel connect-panel">
         <h2>1. Connect</h2>
         <label for="auto-endpoint-id">Endpoint ID</label>
         <input id="auto-endpoint-id" value="local-runtime" autocomplete="off">
@@ -146,17 +148,17 @@
         <button id="auto-start" class="btn primary" type="button">Run quick benchmark</button>
         <button id="auto-cancel" class="btn hidden" type="button">Request cancel</button>
       </section>
-      <section class="panel" aria-live="polite">
+      <section class="panel progress-panel" aria-live="polite">
         <h2>2. Progress</h2>
         <div id="auto-status" class="automation-status">Idle</div>
         <div id="auto-error" class="error hidden"></div>
         <button id="auto-refresh" class="btn hidden" type="button">Refresh status</button>
         <h2>3. Result</h2>
-        <div id="auto-result-empty" class="muted">No benchmark result yet.</div>
+        <div id="auto-result-empty" class="muted result-empty"><span aria-hidden="true">◇</span>No benchmark result yet.</div>
         <pre id="auto-result" class="automation-result hidden"></pre>
       </section>
     </div>
-    <section class="panel">
+    <section class="panel capability-panel">
       <h2>Inference engineering capabilities</h2>
       <div class="capability-cards">
         <div><strong>Quick benchmark</strong><span>TTFT, decode, concurrency, tool and quality gates</span></div>
@@ -170,7 +172,7 @@
 
 <div id="copy-live" class="visually-hidden" role="status" aria-live="polite"></div>
 
-<footer class="footer">Serving Verdict v0.3 &middot; deterministic engine, no LLM opinion &middot; loopback automation</footer>
+<footer class="footer"><strong>Serving Verdict</strong><span>deterministic engine</span><span>no LLM opinion</span><span>loopback only</span></footer>
 <script src="/ui.js"></script>
 </body>
 </html>
