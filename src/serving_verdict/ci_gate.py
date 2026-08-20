@@ -226,7 +226,7 @@ class GateOutcome:
     def summary_lines(self) -> tuple[str, ...]:
         """Bounded, escaped GitHub summary lines (no raw evidence)."""
         lines: list[str] = []
-        lines.append(f"## Serving Verdict gate: {self.decision}")
+        lines.append(f"## LLM ServeVerdict gate: {self.decision}")
         lines.append(f"verdict: {self.verdict or 'n/a'}")
         lines.append(f"required: {self.required or 'n/a'}")
         lines.append(f"blocked: {str(self.blocked).lower()}")

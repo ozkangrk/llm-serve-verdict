@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980" role="img" aria-labelledby="title desc">
-<title id="title">Serving Verdict v0.5 Inference Lab architecture</title>
+<title id="title">LLM ServeVerdict v0.5 Inference Lab architecture</title>
 <desc id="desc">Local Lab, Live telemetry and deterministic signed Decide pipeline with strict execution and trust boundaries.</desc>
 <defs>
   <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#1b2336" stroke-width="1"/></pattern>
@@ -16,7 +16,7 @@
 </defs>
 <rect width="1440" height="980" fill="#070b14"/><rect width="1440" height="980" fill="url(#grid)" opacity=".7"/>
 <rect x="28" y="24" width="1384" height="932" rx="20" fill="url(#hero)" stroke="#27334c"/>
-<circle cx="64" cy="62" r="6" fill="#45d7a5" filter="url(#glow)"/><text x="82" y="70" class="t h">Serving Verdict v0.5 · Inference Lab</text>
+<circle cx="64" cy="62" r="6" fill="#45d7a5" filter="url(#glow)"/><text x="82" y="70" class="t h">LLM ServeVerdict v0.5 · Inference Lab</text>
 <text x="64" y="94" class="m sub">START → MEASURE → SEAL → DECIDE · local-first · production non-mutation by default</text>
 <rect x="1110" y="48" width="260" height="30" rx="15" fill="#10261f" stroke="#2a8d6d"/><text x="1240" y="67" text-anchor="middle" class="t pill">SIGNED DECISION AUTHORITY</text>
 

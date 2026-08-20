@@ -26,4 +26,4 @@ def test_gate_action_refs_are_sha_pinned_and_inputs_are_not_evaled() -> None:
     assert "true|1|yes" in text and "false|0|no" in text
     assert "invalid fail-inconclusive boolean" in text
     assert "invalid require-signature boolean" in text
-    assert 'uv run --frozen serving-verdict "${args[@]}"' in text
+    assert 'uv run --frozen llm-serve-verdict "${args[@]}"' in text

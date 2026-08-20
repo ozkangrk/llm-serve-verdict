@@ -169,6 +169,24 @@ def test_unpinned_or_unverified_refs_rejected(wf_dir: Path, uses: str) -> None:
     ), check.errors
 
 
+def test_floating_job_level_reusable_workflow_is_rejected(wf_dir: Path) -> None:
+    p = wf_dir / GOOD_NAME
+    p.write_text(
+        """name: Fixture
+on: [push]
+permissions:
+  contents: read
+jobs:
+  delegated:
+    uses: other/repository/.github/workflows/build.yml@main
+""",
+        encoding="utf-8",
+    )
+    check = check_workflows.check_workflow_file(p)
+    assert not check.ok
+    assert any("not pinned" in error for error in check.errors)
+
+
 def test_local_composite_action_allowed(wf_dir: Path) -> None:
     p = wf_dir / GOOD_NAME
     p.write_text(_wf_with_uses("./.github/actions/setup"), encoding="utf-8")
@@ -354,12 +372,16 @@ def test_yaml_roundtrip_stable_for_real_workflows() -> None:
         assert "jobs" in doc
 
 
-def test_secret_scan_has_full_history_and_pr_token() -> None:
+def test_secret_scan_has_checksum_verified_full_history_cli() -> None:
     text = (REPO_ROOT / ".github" / "workflows" / "secret-scan.yaml").read_text(
         encoding="utf-8"
     )
     assert "fetch-depth: 0" in text
-    assert "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in text
+    assert 'GITLEAKS_VERSION: "8.24.3"' in text
+    assert "9991e0b2903da4c8f6122b5c3186448b927a5da4deef1fe45271c3793f4ee29c" in text
+    assert "sha256sum --check --strict" in text
+    assert "--log-opts=--all" in text
+    assert "gitleaks/gitleaks-action" not in text
 
 
 def test_gitleaks_allowlist_is_rule_and_exact_declaration_scoped() -> None:
@@ -369,6 +391,9 @@ def test_gitleaks_allowlist_is_rule_and_exact_declaration_scoped() -> None:
     assert "src/serving_verdict/signing" in text
     assert "tests/helpers_v04_bundle" in text
     assert "Ed25519PrivateKey" in text
+    assert "Known inference workload IDs" in text
+    assert "Dedicated redaction-test sentinel constants" in text
+    assert text.count('condition = "AND"') == 3
     assert "[allowlist]" not in text
 
 
@@ -380,3 +405,19 @@ def test_dependency_audit_exports_frozen_hashes_and_pins_auditor() -> None:
     assert "pip-audit==2.9.0" in text
     assert "--require-hashes --strict" in text
     assert "uv audit" not in text
+
+
+def test_publish_version_input_is_env_bound_and_format_checked() -> None:
+    text = (REPO_ROOT / ".github" / "workflows" / "publish-pypi.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "REQUESTED_VERSION: ${{ inputs.version }}" in text
+    assert "^[0-9][0-9A-Za-z.+-]*$" in text
+    assert "github.event.inputs.version" not in text
+
+
+def test_distribution_metadata_checks_use_renamed_project() -> None:
+    for name in ("ci.yaml", "release.yaml", "publish-pypi.yaml"):
+        text = (REPO_ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8")
+        assert "m.version('llm-serve-verdict')" in text
+        assert "m.version('serving-verdict')" not in text

@@ -226,7 +226,7 @@ def test_ui_renders_promote_verdict_authority_and_hashes(tmp_path: Path) -> None
     assert doc["bundleDigest"].startswith("sha256:")
     assert doc["integrityText"].startswith("verified")
     # document title is verdict-first
-    assert doc["documentTitle"] == "PROMOTE · fixture-dspark"
+    assert doc["documentTitle"] == "PROMOTE · fixture-dspark · LLM ServeVerdict"
     # gate authority: machine vs operator attested, rendered per gate
     req = _gate_row(doc, "request_success")
     assert req["status"]["text"] == "pass"
@@ -644,11 +644,12 @@ def test_a11y_structural_contract_in_shipped_markup_and_css() -> None:
     html = (WEB / "index.html").read_text(encoding="utf-8")
     css = (WEB / "ui.css").read_text(encoding="utf-8")
 
-    # one visible H1 per top-level view (index, error, automation)
+    # one H1 per top-level view (index, error, detail, automation)
     assert re.search(r'<h1[^>]*id="list-heading"', html)
     assert re.search(r'<h1[^>]*id="error-title"', html)
+    assert re.search(r'<h1[^>]*id="detail-case-id"', html)
     assert re.search(r'<h1[^>]*id="automation-heading"', html)
-    assert html.count("<h1") == 3, "exactly one H1 per top-level view"
+    assert html.count("<h1") == 4, "exactly one H1 per top-level view"
     # tables have captions + th scope (structural a11y)
     assert "metrics-caption" in html and "gates-caption" in html
     assert html.count("<caption") >= 2

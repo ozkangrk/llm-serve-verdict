@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for considering a contribution to **Serving Verdict**. This is a
+Thank you for considering a contribution to **LLM ServeVerdict**. This is a
 small, deliberately narrow tool, so the contribution bar is "keep it narrow
 and keep it provable." Please read this before opening a PR.
 
@@ -41,7 +41,7 @@ All four gates must be green. The same matrix runs in CI
 ### Good first contributions
 
 - A new **artifact adapter** for a well-specified, real benchmark schema.
-  Use the [Adapter request](https://github.com/ozkangrk/serving-verdict/issues/new?template=adapter_request.yml)
+  Use the [Adapter request](https://github.com/ozkangrk/llm-serve-verdict/issues/new?template=adapter_request.yml)
   form first so we agree on the schema and semantics before code.
 - Clarifications to the README, the honest test matrix, or the diagrams.
 - Fixing a flaky or missing test.

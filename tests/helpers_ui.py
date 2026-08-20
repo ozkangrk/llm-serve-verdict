@@ -166,7 +166,7 @@ var __lastCopied = "";
 var __hashValue = "";
 
 var document = {
-  title: "Serving Verdict",
+  title: "LLM ServeVerdict",
   createElement: function (tag) { return new _Node(tag); },
   getElementById: function (id) { return __ids[id] || null; },
   addEventListener: function (t, fn) {

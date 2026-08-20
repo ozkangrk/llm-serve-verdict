@@ -1,4 +1,4 @@
-"""Typed error hierarchy for Serving Verdict.
+"""Typed error hierarchy for LLM ServeVerdict.
 
 Exit-code mapping (MVP spec):
   - UsageError / CaseConfigError / EvidenceError -> exit 2 (no valid bundle)
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 
 class ServingVerdictError(Exception):
-    """Base class for all Serving Verdict errors."""
+    """Base class for all LLM ServeVerdict errors."""
 
     exit_code: int = 2
 

@@ -1,4 +1,4 @@
-title = "Serving Verdict gitleaks configuration"
+title = "LLM ServeVerdict gitleaks configuration"
 
 [extend]
 useDefault = true
@@ -23,3 +23,23 @@ regexes = [
   '''^key:\s*Ed25519PrivateKey\s*$''',
   '''^key:\s*Ed25519PrivateKey\s*\|\s*Ed25519PublicKey\s*$''',
 ]
+
+  [[rules.allowlists]]
+description = "Known inference workload IDs are not API keys"
+condition = "AND"
+regexTarget = "match"
+paths = ['''^tests/test_adapters\.py$''']
+regexes = [
+  '''^aggregate_output_tokens_per_s", "concurrency4_(short_256|ctx_128|long_512)"$''',
+]
+
+  [[rules.allowlists]]
+description = "Dedicated redaction-test sentinel constants"
+condition = "AND"
+regexTarget = "match"
+paths = [
+  '''^tests/test_workload\.py$''',
+  '''^tests/test_replay\.py$''',
+  '''^tests/test_replay_gate\.py$''',
+]
+regexes = ['''^SECRET\s*=\s*"sk-[^"]+"$''']

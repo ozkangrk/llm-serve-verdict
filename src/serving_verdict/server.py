@@ -32,6 +32,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, Response
 
+from serving_verdict import __version__
 from serving_verdict.automation import AutomationError
 from serving_verdict.endpoint import (
     EndpointConfig,
@@ -183,7 +184,7 @@ def create_app(
     from serving_verdict.automation import JobManager, default_benchmark_runner
 
     jobs = JobManager(automation_runner or default_benchmark_runner)
-    app = FastAPI(title="Serving Verdict", version="0.3.0")
+    app = FastAPI(title="LLM ServeVerdict", version=__version__)
 
     @app.exception_handler(HTTPException)
     async def _flat_http_error(_request: Any, exc: HTTPException) -> Any:

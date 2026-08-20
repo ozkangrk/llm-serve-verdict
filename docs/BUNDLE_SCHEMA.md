@@ -88,12 +88,12 @@ confusion and malformed base64 fail closed.
 
 ```bash
 export SV_SIGNING_KEY='<64 lowercase/uppercase hex chars: 32-byte Ed25519 seed>'
-serving-verdict sign verdict-v04.json \
+llm-serve-verdict sign verdict-v04.json \
   --key-env SV_SIGNING_KEY \
   --signer ci@example.com \
   --out verdict-v04.signed.json
 
-serving-verdict verify verdict-v04.signed.json \
+llm-serve-verdict verify verdict-v04.signed.json \
   --require-signature \
   --trust-store trust-store.json
 ```

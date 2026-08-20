@@ -1,16 +1,16 @@
-# Serving Verdict — Product Requirements Document
+# LLM ServeVerdict — Product Requirements Document
 
 **Document:** PRD v0.4 → v1.0
-**Repository:** `ozkangrk/serving-verdict`
+**Repository:** `ozkangrk/llm-serve-verdict`
 **Date:** 2026-08-19
 **Status:** Proposed
-**Primary goal:** Evolve Serving Verdict from a strong local inference-engineering prototype into a production-grade, ecosystem-integrated, cryptographically verifiable promotion authority for LLM serving changes.
+**Primary goal:** Evolve LLM ServeVerdict from a strong local inference-engineering prototype into a production-grade, ecosystem-integrated, cryptographically verifiable promotion authority for LLM serving changes.
 
 ---
 
 ## 1. Executive Summary
 
-Serving Verdict exists to answer one operational question:
+LLM ServeVerdict exists to answer one operational question:
 
 > **Should a candidate inference-serving configuration replace the current baseline?**
 
@@ -70,7 +70,7 @@ Most benchmark tools answer:
 
 > “What was faster?”
 
-Serving Verdict must answer:
+LLM ServeVerdict must answer:
 
 > **“Is the available evidence sufficient and trustworthy enough to authorize promotion?”**
 
@@ -78,7 +78,7 @@ Serving Verdict must answer:
 
 ## 2.2 Product Category
 
-Serving Verdict should position itself as:
+LLM ServeVerdict should position itself as:
 
 > **An evidence-gated promotion controller for LLM inference changes.**
 
@@ -92,7 +92,7 @@ It is not primarily:
 - a model optimizer,
 - an LLM-based tuning agent.
 
-Those systems are evidence producers or execution targets. Serving Verdict is the **decision authority layer** between them.
+Those systems are evidence producers or execution targets. LLM ServeVerdict is the **decision authority layer** between them.
 
 ---
 
@@ -111,7 +111,7 @@ Evidence producers
           │
           ▼
 ┌─────────────────────────────────────┐
-│          SERVING VERDICT            │
+│          LLM SERVEVERDICT            │
 │                                     │
 │ Evidence manifest + provenance      │
 │ Adapter normalization               │
@@ -162,7 +162,7 @@ Evidence must be referenced by digest, not only by path or filename.
 
 ## P6 — External tools remain external
 
-Serving Verdict should integrate with mature benchmark/runtime tools through adapters rather than duplicating their entire feature sets.
+LLM ServeVerdict should integrate with mature benchmark/runtime tools through adapters rather than duplicating their entire feature sets.
 
 ## P7 — Negative results are first-class
 
@@ -228,7 +228,7 @@ Required outcomes:
 
 # 5. Non-Goals
 
-Unless later approved by a separate PRD, Serving Verdict must not become:
+Unless later approved by a separate PRD, LLM ServeVerdict must not become:
 
 1. A general-purpose Kubernetes inference platform.
 2. A replacement for vLLM, SGLang, TensorRT-LLM or llama.cpp.
@@ -442,8 +442,8 @@ Implementation may start with one signing backend, but the bundle schema should 
 CLI must provide:
 
 ```bash
-serving-verdict verify verdict.json
-serving-verdict verify verdict.json --require-signature
+llm-serve-verdict verify verdict.json
+llm-serve-verdict verify verdict.json --require-signature
 ```
 
 Verification should distinguish:
@@ -792,7 +792,7 @@ Allow external gate evidence to be attached, for example:
 - safety test pass/fail,
 - regression suite pass/fail.
 
-Serving Verdict should consume these as evidence, not implement all domain evaluation itself.
+LLM ServeVerdict should consume these as evidence, not implement all domain evaluation itself.
 
 ---
 
@@ -817,7 +817,7 @@ CLI must preserve current compatibility unless a major-version change is made.
 Provide:
 
 ```bash
-serving-verdict gate verdict.json --require PROMOTE
+llm-serve-verdict gate verdict.json --require PROMOTE
 ```
 
 or equivalent.
@@ -963,7 +963,7 @@ For systems supporting runtime lifecycle integration, a promotion can optionally
 
 ## FR-10.3 Scope boundary
 
-Core Serving Verdict should not directly mutate arbitrary runtimes in v0.4.
+Core LLM ServeVerdict should not directly mutate arbitrary runtimes in v0.4.
 
 Runtime mutation must remain behind an adapter/integration boundary and require separate explicit enablement.
 
@@ -1041,7 +1041,7 @@ verdict output must be byte-stable except explicitly volatile envelope metadata.
 
 # NFR-3 — Performance
 
-Serving Verdict should not become the bottleneck relative to benchmark execution.
+LLM ServeVerdict should not become the bottleneck relative to benchmark execution.
 
 Target:
 
@@ -1625,7 +1625,7 @@ A new core feature is not done until:
 
 # 22. Final Product Statement
 
-Serving Verdict should become the layer that teams trust when a benchmark result is not enough.
+LLM ServeVerdict should become the layer that teams trust when a benchmark result is not enough.
 
 Its long-term value is not that it can run one more performance test. Its value is that it can say:
 

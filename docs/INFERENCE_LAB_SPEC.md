@@ -1,4 +1,4 @@
-# Serving Verdict Inference Lab — Normative Product and Runtime Contract
+# LLM ServeVerdict Inference Lab — Normative Product and Runtime Contract
 
 **Document:** v0.5 Inference Lab specification
 **Status:** Approved for implementation
