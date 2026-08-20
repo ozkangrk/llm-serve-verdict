@@ -21,6 +21,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   exact ownership-fenced cleanup.
 - Trusted `LabRunSpec` factory authority and process-unique Docker resource
   suffixes; direct/`dataclasses.replace` plan forgeries fail before Docker.
+- Cleanup-gated `serving-verdict.lab-run.v0.5` orchestration: repeated sealed
+  quick-profile trials, concurrent bounded telemetry, deterministic
+  min/mean/p50/p95/p99/max/latest summaries and profile/workload binding.
 
 ### Changed
 
@@ -35,6 +38,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   997 tests; mypy over 53 source files.
 - Live DGX Spark capability smoke: Docker 29.2.1, NVIDIA runtime and exact local
   vLLM image digest resolved; no container/network created or left behind.
+- Lab orchestrator focused suite: 7 tests; full exact collection: 1004 tests;
+  mypy over 54 source files.
 
 ## [0.4.0] — 2026-08-20
 
