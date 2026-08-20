@@ -1,0 +1,42 @@
+name: Dependency Audit
+
+# Dependency vulnerability scanning (RR-3) using `uv audit` (OSV.dev-based,
+# no token needed). Audits the frozen lockfile: runtime dependencies plus the
+# dev group. Least-privilege: read contents only.
+#
+# NOTE: uv audit downloads the OSV.dev advisory database at run time, so this
+# job requires network access to github.com's runners (standard); the local
+# unit test suite itself never touches the network.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # weekly audit so new advisory data is applied even without pushes
+    - cron: "43 4 * * 3"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: audit (uv, frozen lockfile)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+        with:
+          version: "0.7"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      # --frozen: audit exactly the committed uv.lock (no lockfile drift).
+      - name: Audit dependencies (uv audit)
+        run: uv audit --frozen

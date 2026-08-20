@@ -1,0 +1,40 @@
+name: CodeQL
+
+# Static analysis (RR-3). Python analysis over the whole repository;
+# least-privilege: read contents, write only CodeQL security events.
+# Actions are pinned to commit SHAs verified against github/codeql-action
+# (v4.37.7, tag object resolved via the official repository on 2026-08-20).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # weekly scan on the default branch
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: analyze (python)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          languages: python
+          setup-python: false
+
+      # No custom build step: the project is a pure-Python package and the
+      # CodeQL Python extractor auto-builds (source scanning) it.
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          category: "-security-audit"
