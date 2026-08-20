@@ -6,6 +6,7 @@ container SDK and exposes no generic daemon request or container command API.
 from __future__ import annotations
 
 import re
+import secrets
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ from typing import Any, Protocol, runtime_checkable
 _RUN_RE = re.compile(r"^lab-[0-9a-f]{24}$")
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 _IMAGE_RE = re.compile(r"^[a-z0-9.-]+(?:/[A-Za-z0-9._-]+)+@sha256:[0-9a-f]{64}$")
+_RESOURCE_SUFFIX_RE = re.compile(r"^[0-9a-f]{8}$")
 
 
 class LifecycleError(ValueError):
@@ -114,10 +116,14 @@ class LifecycleResult:
 class LabLifecycle:
     """Single-flight lifecycle owner; one instance runs at most one lab at a time."""
 
-    def __init__(self, backend: LabBackend) -> None:
+    def __init__(self, backend: LabBackend, *, _resource_suffix: str | None = None) -> None:
         if not isinstance(backend, LabBackend):
             raise LifecycleError("backend does not implement the lab capability")
         self._backend = backend
+        suffix = _resource_suffix or secrets.token_hex(4)
+        if not isinstance(suffix, str) or _RESOURCE_SUFFIX_RE.fullmatch(suffix) is None:
+            raise LifecycleError("resource suffix is malformed")
+        self._resource_suffix = suffix
         self._active_lock = threading.Lock()
 
     def execute(
@@ -148,8 +154,8 @@ class LabLifecycle:
     ) -> LifecycleResult:
         events: list[LabState] = [LabState.PLANNED]
         ownership = Ownership("serving-verdict-lab", plan.run_id, plan.template_digest)
-        network_id = f"sv-lab-net-{plan.run_id}"
-        container_id = f"sv-lab-ctr-{plan.run_id}"
+        network_id = f"sv-lab-net-{plan.run_id}-{self._resource_suffix}"
+        container_id = f"sv-lab-ctr-{plan.run_id}-{self._resource_suffix}"
         network_attempted = False
         container_attempted = False
         result: Any | None = None
