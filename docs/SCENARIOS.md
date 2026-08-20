@@ -9,8 +9,8 @@ The examples below are illustrative workflows, not published performance claims.
 
 ## Scenario 1 — Faster vLLM upgrade breaks tool calling
 
-**Actor:** Ayşe, inference engineer
-**Trigger:** She upgrades vLLM and changes batching/KV-cache flags. A quick test
+**Actor:** Alex, inference engineer
+**Trigger:** They upgrade vLLM and change batching/KV-cache flags. A quick test
 looks faster.
 
 ### Inputs

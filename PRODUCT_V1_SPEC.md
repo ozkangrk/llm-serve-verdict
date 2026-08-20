@@ -181,6 +181,8 @@ Verdicts are scoped to the exact endpoints, model identities, protocol, workload
 ```text
 llm-serve-verdict endpoint check endpoint.yaml
 llm-serve-verdict bench run --endpoint endpoint.yaml --profile quick --out run.json
+llm-serve-verdict bench ab --baseline-endpoint baseline.yaml --candidate-endpoint candidate.yaml --trials 3 --out-dir experiment
+llm-serve-verdict bench ab-verify experiment --require PROMOTE --fail-inconclusive --json
 llm-serve-verdict bench compare --baseline baseline.json --candidate candidate.json --out verdict.json
 llm-serve-verdict demo --out-dir demo
 llm-serve-verdict history [--case CASE] [--json]

@@ -13,6 +13,8 @@ Commands (MVP v0.1 + v0.2 portable trial backend):
     serve --host 127.0.0.1 --port 8787 [--data-dir DATA_DIR]
     endpoint check ENDPOINT.yaml [--allow-remote] [--json]
     bench run --endpoint ENDPOINT.yaml --profile quick --out RUN.json [--json]
+    bench ab --baseline-endpoint BASE.yaml --candidate-endpoint CANDIDATE.yaml
+             --trials 3 --out-dir DIR [--json]
 
 Exit codes: 0 success (incl. valid REJECT/INCONCLUSIVE imports and passing
 verify); 2 usage/config/load error; 4 bundle/artifact integrity verification
@@ -785,6 +787,156 @@ def _cmd_bench_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_bench_ab(args: argparse.Namespace) -> int:
+    from datetime import UTC, datetime
+
+    from serving_verdict.ab_experiment import (
+        ABExperimentError,
+        ABExperimentSpec,
+        run_ab_experiment,
+        write_ab_experiment,
+    )
+    from serving_verdict.benchmark_runner import BenchmarkRunError
+    from serving_verdict.endpoint import (
+        EndpointConfigError,
+        load_endpoint_config,
+        resolve_api_key,
+    )
+    from serving_verdict.preflight import EndpointPreflightError
+    from serving_verdict.profile import get_profile
+
+    out_dir = Path(args.out_dir)
+    if out_dir.exists():
+        message = "experiment output directory already exists"
+        if args.json:
+            _emit_json({"ok": False, "error": message})
+        else:
+            _diag(message)
+        return 2
+    try:
+        profile = get_profile(args.profile)
+        baseline = load_endpoint_config(
+            args.baseline_endpoint, allow_remote=args.allow_remote
+        )
+        candidate = load_endpoint_config(
+            args.candidate_endpoint, allow_remote=args.allow_remote
+        )
+        baseline_key = resolve_api_key(baseline)
+        candidate_key = resolve_api_key(candidate)
+        spec = ABExperimentSpec(
+            trials=args.trials,
+            confidence_level=args.confidence_level,
+            iterations=args.iterations,
+            seed=args.seed,
+            threshold=args.threshold,
+        )
+        result = run_ab_experiment(
+            baseline,
+            candidate,
+            baseline_api_key=baseline_key,
+            candidate_api_key=candidate_key,
+            profile=profile,
+            spec=spec,
+            transport_timeout_s=args.timeout,
+            created_at=datetime.now(UTC).isoformat(),
+        )
+        write_ab_experiment(result, out_dir)
+    except (
+        ABExperimentError,
+        BenchmarkRunError,
+        EndpointConfigError,
+        EndpointPreflightError,
+        LookupError,
+    ) as exc:
+        message = f"A/B experiment failed: {exc}"
+        if args.json:
+            _emit_json({"ok": False, "error": message})
+        else:
+            _diag(message)
+        return 2
+    payload = {
+        "ok": True,
+        "decision": result.manifest["decision"],
+        "artifact_digest": result.manifest["artifact_digest"],
+        "trials": spec.trials,
+        "metric_id": result.manifest["metric_id"],
+        "out_dir": str(out_dir),
+    }
+    if args.json:
+        _emit_json(payload)
+    else:
+        _diag(
+            f"A/B experiment sealed: {payload['decision']['verdict']} "
+            f"({payload['trials']} trials per arm) written to {out_dir}"
+        )
+    return 0
+
+
+def _cmd_bench(args: argparse.Namespace) -> int:
+    if args.bench_command == "run":
+        return _cmd_bench_run(args)
+    if args.bench_command == "ab":
+        return _cmd_bench_ab(args)
+    if args.bench_command == "ab-verify":
+        from serving_verdict.ab_experiment import (
+            ABExperimentError,
+            load_and_verify_ab_experiment,
+        )
+
+        directory = Path(args.directory)
+        if directory.is_symlink() or not directory.is_dir():
+            message = "experiment directory does not exist or is unsafe"
+            if args.json:
+                _emit_json({"valid": False, "error": message})
+            else:
+                _diag(message)
+            return 2
+        try:
+            manifest, verification = load_and_verify_ab_experiment(directory)
+        except ABExperimentError as exc:
+            if args.json:
+                _emit_json({"valid": False, "error": str(exc)})
+            else:
+                _diag(f"A/B experiment verification failed: {exc}")
+            return 4
+        if args.fail_inconclusive and args.require is None:
+            message = "--fail-inconclusive requires --require PROMOTE"
+            if args.json:
+                _emit_json({"valid": False, "error": message})
+            else:
+                _diag(message)
+            return 2
+        verdict = manifest["decision"]["verdict"]
+        exit_code = 0
+        blocked = False
+        if args.require == "PROMOTE":
+            if verdict == "REJECT":
+                exit_code = 5
+                blocked = True
+            elif verdict == "INCONCLUSIVE" and args.fail_inconclusive:
+                exit_code = 6
+                blocked = True
+        payload = {
+            **verification,
+            "decision": manifest["decision"],
+            "metric_id": manifest["metric_id"],
+            "trials": manifest["spec"]["trials"],
+            "required": args.require,
+            "blocked": blocked,
+            "exit_code": exit_code,
+        }
+        if args.json:
+            _emit_json(payload)
+        else:
+            _diag(
+                f"A/B experiment verified: {payload['decision']['verdict']} "
+                f"({payload['digest']})"
+            )
+        return exit_code
+    _diag("unsupported bench command")
+    return 2
+
+
 # ---------------------------------------------------------------------------
 # argparse wiring
 # ---------------------------------------------------------------------------
@@ -926,6 +1078,30 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench_run.add_argument("--timeout", type=float, default=120.0)
     p_bench_run.add_argument("--json", action="store_true")
 
+    p_bench_ab = p_bench_sub.add_parser(
+        "ab", help="run alternating repeated baseline/candidate benchmarks"
+    )
+    p_bench_ab.add_argument("--baseline-endpoint", required=True)
+    p_bench_ab.add_argument("--candidate-endpoint", required=True)
+    p_bench_ab.add_argument("--profile", default="quick")
+    p_bench_ab.add_argument("--trials", type=int, default=3)
+    p_bench_ab.add_argument("--confidence-level", type=float, default=0.95)
+    p_bench_ab.add_argument("--iterations", type=int, default=1000)
+    p_bench_ab.add_argument("--seed", type=int, default=0)
+    p_bench_ab.add_argument("--threshold", type=float, default=0.05)
+    p_bench_ab.add_argument("--out-dir", required=True)
+    p_bench_ab.add_argument("--allow-remote", action="store_true")
+    p_bench_ab.add_argument("--timeout", type=float, default=120.0)
+    p_bench_ab.add_argument("--json", action="store_true")
+
+    p_bench_verify = p_bench_sub.add_parser(
+        "ab-verify", help="verify an A/B experiment directory and every artifact"
+    )
+    p_bench_verify.add_argument("directory")
+    p_bench_verify.add_argument("--require", choices=("PROMOTE",))
+    p_bench_verify.add_argument("--fail-inconclusive", action="store_true")
+    p_bench_verify.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -944,7 +1120,7 @@ def main(argv: list[str] | None = None) -> int:
         "reindex": _cmd_reindex,
         "serve": _cmd_serve,
         "endpoint": _cmd_endpoint_check,
-        "bench": _cmd_bench_run,
+        "bench": _cmd_bench,
     }
     return handlers[args.command](args)
 

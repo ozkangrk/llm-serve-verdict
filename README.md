@@ -35,7 +35,7 @@ not an LLM that gives an opinion.
 
 ## Concrete scenario
 
-Ayşe is an inference engineer running a production LLM with vLLM. She wants to
+Alex is an inference engineer running a production LLM with vLLM. They want to
 upgrade the runtime and change batching/KV-cache flags.
 
 ```text
@@ -64,6 +64,35 @@ Three possible endings:
 Today, v0.4 connects to an OpenAI-compatible endpoint or imports benchmark
 artifacts; it does **not** start or mutate production servers. The opt-in Docker
 Inference Lab is the explicitly separated v0.5 workstream.
+
+## Automate the baseline/candidate experiment
+
+Give LLM ServeVerdict two endpoint configs and it now runs the repeated A/B loop
+for you:
+
+```bash
+llm-serve-verdict bench ab \
+  --baseline-endpoint baseline.yaml \
+  --candidate-endpoint candidate.yaml \
+  --trials 3 \
+  --threshold 0.05 \
+  --seed 17 \
+  --out-dir evidence/qwen-vllm-ab \
+  --json
+```
+
+This command:
+
+- alternates execution order each round to reduce time/order drift;
+- runs the same frozen warmup, serving, concurrency, arithmetic and tool checks;
+- keeps every sealed trial artifact—no silent outlier removal;
+- lets correctness/stability failures override a speedup;
+- computes a deterministic bootstrap confidence interval;
+- atomically writes all runs, `statistics.json`, and one bound
+  `experiment.json` decision.
+
+Read the exact contract and endpoint examples in
+[Automated A/B experiments](docs/AB_EXPERIMENT.md).
 
 ![LLM ServeVerdict v0.5 architecture](docs/architecture-v0.5.svg)
 
@@ -165,6 +194,7 @@ or dashboard. See the point-in-time [competitor reconnaissance](docs/COMPETITOR_
 ### Inference engineering
 
 - bounded OpenAI-compatible quick benchmark;
+- automated alternating repeated baseline/candidate A/B experiments;
 - endpoint preflight and environment-only credentials;
 - Serving Doctor and capacity planner;
 - rule-based Config Advisor with inert launch/rollback recipes;
@@ -222,6 +252,8 @@ Read [THREAT_MODEL.md](THREAT_MODEL.md), [SECURITY.md](SECURITY.md) and the
 llm-serve-verdict demo --out-dir DIR
 llm-serve-verdict endpoint check ENDPOINT.yaml
 llm-serve-verdict bench run --endpoint ENDPOINT.yaml --profile quick --out RUN.json
+llm-serve-verdict bench ab --baseline-endpoint BASE.yaml --candidate-endpoint CAND.yaml --trials 3 --out-dir DIR
+llm-serve-verdict bench ab-verify DIR [--require PROMOTE --fail-inconclusive] [--json]
 llm-serve-verdict import-case CASE.yaml --out VERDICT.json
 llm-serve-verdict verify VERDICT.json [--require-signature --trust-store TRUST.json]
 llm-serve-verdict sign VERDICT_V04.json --key-env ENV --signer ID --out SIGNED.json
@@ -251,10 +283,29 @@ is bounded and ephemeral. The v0.5 productization target is a redesigned
 **Lab / Live / Decide** workspace with real-browser desktop and 390px release
 screenshots.
 
+## Measured test results
+
+Measured on the exact feature tree with Python 3.12 on 2026-08-20:
+
+| Gate | Result |
+|---|---|
+| Full pytest collection | **989 passed** |
+| Automated A/B focused tests | **16 passed** (unit + installed CLI/mock endpoints) |
+| Ruff | **passed** across `src`, `tests`, and `scripts` |
+| mypy | **passed** across **52 source files** |
+| Package build | `llm_serve_verdict-0.4.0` wheel + sdist |
+| A/B output safety | API-key values absent; atomic directory; digest/tamper tests passed |
+| Installed-wheel A/B E2E | 2 trials/arm, 6 JSON artifacts, `verified: true` |
+| Browser UI | Desktop + 390px mobile; overflow 0, touch targets ≥44px, console clean |
+
+The GitHub badge at the top reflects the live Linux/macOS and Python 3.11/3.12
+matrix; local numbers above are updated only from a real exact-tree run.
+
 ## Documentation
 
 | Document | Purpose |
 |---|---|
+| [Automated A/B experiments](docs/AB_EXPERIMENT.md) | Repeated endpoint orchestration, artifacts and decision order |
 | [Concrete scenarios](docs/SCENARIOS.md) | Four end-to-end LLM serving decisions in plain language |
 | [PRD v0.4 → v1.0](docs/PRD-v0.4-v1.0.md) | Product direction and acceptance contracts |
 | [Inference Lab spec](docs/INFERENCE_LAB_SPEC.md) | Opt-in runtime, benchmark, telemetry and UI contract |

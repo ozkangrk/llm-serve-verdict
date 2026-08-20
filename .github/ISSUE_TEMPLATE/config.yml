@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Ask a question / need help with a case config
-    url: https://github.com/ozkangrk/serving-verdict/issues/new?template=config_help.yml
+    url: https://github.com/ozkangrk/llm-serve-verdict/issues/new?template=config_help.yml
     about: Use the Configuration / case-config help form.
   - name: Report a security vulnerability
-    url: https://github.com/ozkangrk/serving-verdict/security/advisories/new
+    url: https://github.com/ozkangrk/llm-serve-verdict/security/advisories/new
     about: Do NOT open a public issue for a security concern. See SECURITY.md.

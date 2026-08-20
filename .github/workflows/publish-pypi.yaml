@@ -6,10 +6,10 @@
 #      trusted publishing (see steps below for what that requires).
 #
 # Trusted publishing setup (owner must do this once, in the PyPI UI):
-#   1. Create a publishing pipeline for `serving-verdict` in the PyPI account.
+#   1. Create a publishing pipeline for `llm-serve-verdict` in the PyPI account.
 #   2. Configure a GitHub OIDC identity:
 #        issuer:    https://token.actions.githubusercontent.com
-#        subject:   repository:ozkangrk/serving-verdict
+#        subject:   repository:ozkangrk/llm-serve-verdict
 #   3. In GitHub repo Settings -> Developer settings -> OIDC, add the PyPI
 #      audience:  https://pypi.org
 #   Once that exists, the `publish` job below needs NO secrets: the
