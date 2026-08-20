@@ -370,3 +370,13 @@ def test_gitleaks_allowlist_is_rule_and_exact_declaration_scoped() -> None:
     assert "tests/helpers_v04_bundle" in text
     assert "Ed25519PrivateKey" in text
     assert "[allowlist]" not in text
+
+
+def test_dependency_audit_exports_frozen_hashes_and_pins_auditor() -> None:
+    text = (REPO_ROOT / ".github" / "workflows" / "dependency-audit.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "uv --quiet export --frozen --all-extras --no-emit-project" in text
+    assert "pip-audit==2.9.0" in text
+    assert "--require-hashes --strict" in text
+    assert "uv audit" not in text

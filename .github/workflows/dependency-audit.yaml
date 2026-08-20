@@ -1,10 +1,11 @@
 name: Dependency Audit
 
-# Dependency vulnerability scanning (RR-3) using `uv audit` (OSV.dev-based,
-# no token needed). Audits the frozen lockfile: runtime dependencies plus the
-# dev group. Least-privilege: read contents only.
+# Dependency vulnerability scanning (RR-3) using a version-pinned pip-audit.
+# `uv export --frozen` materializes the exact committed lock as hash-pinned
+# requirements; pip-audit checks that set against the PyPI advisory service.
+# Least-privilege: read contents only.
 #
-# NOTE: uv audit downloads the OSV.dev advisory database at run time, so this
+# NOTE: pip-audit queries advisory data at run time, so this
 # job requires network access to github.com's runners (standard); the local
 # unit test suite itself never touches the network.
 
@@ -22,7 +23,7 @@ permissions:
 
 jobs:
   audit:
-    name: audit (uv, frozen lockfile)
+    name: audit (pip-audit, frozen lockfile)
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -37,6 +38,14 @@ jobs:
       - name: Set up Python
         run: uv python install 3.12
 
-      # --frozen: audit exactly the committed uv.lock (no lockfile drift).
-      - name: Audit dependencies (uv audit)
-        run: uv audit --frozen
+      - name: Export exact frozen dependency set
+        run: >-
+          uv --quiet export --frozen --all-extras --no-emit-project
+          --format requirements-txt
+          --output-file "${RUNNER_TEMP}/serving-verdict-audit.txt"
+
+      - name: Audit hash-pinned dependencies
+        run: >-
+          uvx --from pip-audit==2.9.0 pip-audit
+          --requirement "${RUNNER_TEMP}/serving-verdict-audit.txt"
+          --require-hashes --strict --progress-spinner=off
