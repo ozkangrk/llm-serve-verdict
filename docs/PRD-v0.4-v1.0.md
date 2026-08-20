@@ -1,9 +1,9 @@
 # Serving Verdict — Product Requirements Document
 
-**Document:** PRD v0.4 → v1.0  
-**Repository:** `ozkangrk/serving-verdict`  
-**Date:** 2026-08-19  
-**Status:** Proposed  
+**Document:** PRD v0.4 → v1.0
+**Repository:** `ozkangrk/serving-verdict`
+**Date:** 2026-08-19
+**Status:** Proposed
 **Primary goal:** Evolve Serving Verdict from a strong local inference-engineering prototype into a production-grade, ecosystem-integrated, cryptographically verifiable promotion authority for LLM serving changes.
 
 ---
