@@ -21,6 +21,9 @@ from serving_verdict.lab_templates import RuntimeTemplate
 
 _HANDLE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
 _RESOURCE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,127}$")
+_DOCKER_HUB_DIGEST_RE = re.compile(
+    r"^docker\.io/(?P<reference>[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*@sha256:[0-9a-f]{64})$"
+)
 _PORT_RE = re.compile(r"^127\.0\.0\.1:([0-9]{1,5})$")
 _MAX_COMMAND_OUTPUT = 1 << 20
 _LABEL_OWNER = "serving-verdict.owner"
@@ -293,8 +296,9 @@ class DockerLabBackend:
         if not isinstance(digests, list) or not all(isinstance(item, str) for item in digests):
             raise DockerBackendError("Docker image digest report is invalid")
         accepted = {image}
-        if image.startswith("docker.io/"):
-            accepted.add(image.removeprefix("docker.io/"))
+        docker_hub = _DOCKER_HUB_DIGEST_RE.fullmatch(image)
+        if docker_hub is not None:
+            accepted.add(docker_hub.group("reference"))
         return any(item in accepted for item in digests)
 
     def pull_image(self, image: str, ownership: Ownership, deadline_s: float) -> None:
