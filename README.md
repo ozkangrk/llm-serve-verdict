@@ -16,6 +16,9 @@ re-litigate.
 
 ![Serving Verdict Automation Wizard](docs/screenshots/automation-desktop.png)
 
+**Next product contract:** [PRD v0.4 → v1.0](docs/PRD-v0.4-v1.0.md) —
+statistical confidence, signed provenance, ecosystem adapters and deployment gates.
+
 ## Why this exists
 
 Inference teams regularly change serving configurations: runtime versions,
