@@ -360,3 +360,13 @@ def test_secret_scan_has_full_history_and_pr_token() -> None:
     )
     assert "fetch-depth: 0" in text
     assert "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in text
+
+
+def test_gitleaks_allowlist_is_rule_and_exact_declaration_scoped() -> None:
+    text = (REPO_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    assert 'id = "generic-api-key"' in text
+    assert 'condition = "AND"' in text
+    assert "src/serving_verdict/signing" in text
+    assert "tests/helpers_v04_bundle" in text
+    assert "Ed25519PrivateKey" in text
+    assert "[allowlist]" not in text

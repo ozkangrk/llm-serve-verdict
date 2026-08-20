@@ -1,0 +1,25 @@
+title = "Serving Verdict gitleaks configuration"
+
+[extend]
+useDefault = true
+
+# Gitleaks' generic-api-key rule treats typed Python field/function declarations
+# containing `private_key` as credentials. Suppress only the exact declaration
+# shapes in the two signing-contract files; values, assignments and all other
+# rules/paths remain fully scanned.
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+description = "Typed Ed25519 declarations are identifiers, not embedded keys"
+condition = "AND"
+regexTarget = "match"
+paths = [
+  '''^src/serving_verdict/signing\.py$''',
+  '''^tests/helpers_v04_bundle\.py$''',
+]
+regexes = [
+  '''^private_key:\s*Ed25519PrivateKey\s*$''',
+  '''^key:\s*Ed25519PrivateKey\s*$''',
+  '''^key:\s*Ed25519PrivateKey\s*\|\s*Ed25519PublicKey\s*$''',
+]
