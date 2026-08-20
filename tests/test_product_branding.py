@@ -30,13 +30,16 @@ def test_readme_explains_actor_problem_workflow_and_three_decisions() -> None:
     assert readme.startswith('<div align="center">\n\n# LLM ServeVerdict')
     for phrase in (
         "current and candidate vLLM",
-        "Ayşe is an inference engineer",
+        "Alex is an inference engineer",
         "tool calls become malformed",
         "confidence interval",
         "`PROMOTE`",
         "`REJECT`",
         "`INCONCLUSIVE`",
         "does **not** start or mutate production servers",
+        "llm-serve-verdict bench ab",
+        "alternates execution order each round",
+        "Automated A/B experiments",
     ):
         assert phrase in readme
 
@@ -49,6 +52,10 @@ def test_user_facing_brand_has_no_old_repository_or_display_name() -> None:
         ROOT / "src" / "serving_verdict" / "web" / "index.html",
         ROOT / "docs" / "architecture-v0.5.svg",
         ROOT / "docs" / "SCENARIOS.md",
+        ROOT / ".github" / "ISSUE_TEMPLATE" / "config.yml",
+        ROOT / ".github" / "ISSUE_TEMPLATE" / "bug_report.yml",
+        ROOT / ".github" / "ISSUE_TEMPLATE" / "config_help.yml",
+        ROOT / ".github" / "workflows" / "publish-pypi.yaml",
     )
     for path in files:
         text = path.read_text(encoding="utf-8")

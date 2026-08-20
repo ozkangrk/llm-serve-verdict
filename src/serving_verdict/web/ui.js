@@ -317,7 +317,7 @@
       text.textContent = "No verdict bundle matches \u201c" + caseId + "\u201d in the data directory." +
         (message ? " (" + message + ")" : "");
       adv.textContent = "Check the case ID and the data directory path, then retry. " +
-        "List all bundles with: serving-verdict list --data-dir DATA_DIR";
+        "List all bundles with: llm-serve-verdict list DATA_DIR";
     } else if (kind === "invalid") {
       title.textContent = "Invalid bundle";
       text.textContent = message || "bundle integrity verification failed";

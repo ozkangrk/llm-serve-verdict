@@ -44,7 +44,7 @@ body:
     attributes:
       label: Verdict / reason codes observed
       description: |
-        The verdict and reason_codes from `serving-verdict show BUNDLE.json`,
+        The verdict and reason_codes from `llm-serve-verdict show BUNDLE.json`,
         or the exact CLI error and exit code.
       render: shell
     validations:
@@ -58,7 +58,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Serving Verdict version
-      placeholder: 0.2.0
+      label: LLM ServeVerdict version
+      placeholder: 0.4.0
     validations:
       required: true

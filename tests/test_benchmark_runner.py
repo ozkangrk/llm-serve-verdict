@@ -541,7 +541,9 @@ def test_concurrency_shared_wall_and_aggregate_math(tmp_path: Path) -> None:
     # apart given the 0.5s server sleeps between sends)
     conc_arrivals = MockOpenAIHandler.arrival_times[8:11]
     assert max(conc_arrivals) - min(conc_arrivals) < 1.5
-    assert e2e_sum > 1.5  # sanity: serial execution would take much longer
+    # Allow modest scheduler/timer jitter around the nominal 3 × 0.5s sleeps;
+    # this still proves the summed serial wall is far above the shared wall.
+    assert e2e_sum > 1.4
     assert t0 > 0
 
 

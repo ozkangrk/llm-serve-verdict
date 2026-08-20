@@ -303,6 +303,8 @@ def test_detail_404_renders_not_found_panel_without_fake_verdict() -> None:
     assert doc["visibleView"] == "error-view"
     assert doc["errorTitle"] == "Case not found"
     assert "missing-case" in doc["errorText"]
+    assert "llm-serve-verdict list DATA_DIR" in doc["errorAdvice"]
+    assert "--data-dir" not in doc["errorAdvice"]
     assert doc["errorRole"] == "alert"
     assert doc["errorRetryVisible"]
     assert doc["backVisible"]

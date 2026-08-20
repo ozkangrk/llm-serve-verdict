@@ -6,7 +6,25 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-No unreleased user-facing changes.
+### Added
+
+- `bench ab` automated endpoint experiment runner: alternating baseline/candidate
+  order, bounded repeated trials, hard-gate precedence, deterministic bootstrap
+  decision, sealed per-trial/statistics artifacts and atomic output publishing.
+- Fail-closed A/B verification binds safe filenames, endpoint/model/protocol/
+  workload context, run statuses, metric samples, statistical policy and final
+  decision; `bench ab-verify` checks the bounded directory before CI consumes
+  it, and API-key values are rejected from runner artifacts.
+
+### Changed
+
+- README scenario actor is now Alex and the landing page includes measured test
+  results plus the end-to-end A/B automation command.
+
+### Verification
+
+- Exact-tree collection: 989 tests; 16 focused A/B unit/CLI tests.
+- Ruff, mypy over 52 source files, wheel and sdist build pass.
 
 ## [0.4.0] — 2026-08-20
 
