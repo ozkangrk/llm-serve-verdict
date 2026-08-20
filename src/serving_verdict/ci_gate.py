@@ -461,6 +461,9 @@ def write_github_summary(outcome: GateOutcome, path: str | Path) -> None:
     if not target.parent.is_dir():
         raise UsageError(f"summary directory does not exist: {target.parent}")
     try:
+        # Explicit public projection: summary_lines contains only bounded,
+        # escaped verdict/status/reason and public signer/key-id metadata. It
+        # never carries a private seed, raw evidence, prompt, output or secret.
         target.write_text(render_github_summary(outcome), encoding="utf-8")
     except OSError as exc:
         raise UsageError(f"cannot write GitHub summary: {exc.__class__.__name__}") from exc

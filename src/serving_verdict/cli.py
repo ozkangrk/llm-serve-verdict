@@ -60,6 +60,9 @@ DEFAULT_DATA_DIR = "data"
 
 
 def _emit_json(obj: Any) -> None:
+    # Public machine-output sink. Signing paths expose only the DSSE signature,
+    # public-key-derived key ID and bounded status fields; the environment-only
+    # Ed25519 seed is never part of `obj` (covered by signing/CLI leak tests).
     sys.stdout.write(json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
 
