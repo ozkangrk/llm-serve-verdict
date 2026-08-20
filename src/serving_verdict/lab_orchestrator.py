@@ -450,7 +450,17 @@ class LabRunOrchestrator:
         def work(deadline_s: float) -> dict[str, Any]:
             endpoint_url = self._loopback_url(self._endpoint.endpoint_url, "inference")
             metrics_url = self._loopback_url(self._endpoint.metrics_url, "metrics")
-            per_trial_deadline = float(deadline_s) / plan.trial_count
+            started_at = float(self._clock())
+            if not isfinite(started_at):
+                raise LabOrchestrationError("run clock is invalid")
+            deadline_at = started_at + float(deadline_s)
+
+            def remaining_budget() -> float:
+                remaining = deadline_at - float(self._clock())
+                if not isfinite(remaining):
+                    raise LabOrchestrationError("run clock is invalid")
+                return max(0.0, remaining)
+
             buffer = TelemetryBuffer(
                 max_samples=plan.telemetry_max_samples,
                 max_series=min(64, max(1, len(self._bindings) * 8)),
@@ -458,7 +468,7 @@ class LabRunOrchestrator:
             trial_refs: list[dict[str, Any]] = []
             seen_trial_digests: set[str] = set()
             expected_context: tuple[Any, ...] | None = None
-            telemetry_started = self._clock()
+            telemetry_started = started_at
 
             def fetch_bounded(timeout_s: float) -> bytes:
                 done = Event()
@@ -487,11 +497,14 @@ class LabRunOrchestrator:
                     raise TelemetryError("telemetry fetch result must be bytes")
                 return body
 
-            def scrape_once() -> None:
+            def scrape_once() -> bool:
                 offset = max(0.0, float(self._clock() - telemetry_started))
+                remaining = remaining_budget()
+                if remaining <= 0.0:
+                    return False
                 try:
                     raw = fetch_bounded(
-                        min(float(plan.telemetry_interval_s), per_trial_deadline)
+                        min(float(plan.telemetry_interval_s), remaining)
                     )
                     samples = parse_prometheus_snapshot(
                         raw,
@@ -505,12 +518,14 @@ class LabRunOrchestrator:
                     buffer.record_failure(offset_s=offset, status="invalid")
                 except Exception:
                     buffer.record_failure(offset_s=offset, status="unavailable")
+                return True
 
             stop_telemetry = Event()
 
             def collect_live() -> None:
                 while not stop_telemetry.is_set():
-                    scrape_once()
+                    if not scrape_once():
+                        return
                     if stop_telemetry.wait(float(plan.telemetry_interval_s)):
                         return
 
@@ -522,7 +537,15 @@ class LabRunOrchestrator:
             collector.start()
             try:
                 for index in range(1, plan.trial_count + 1):
-                    artifact = self._trial_runner(endpoint_url, index, per_trial_deadline)
+                    remaining_trials = plan.trial_count - index + 1
+                    remaining = remaining_budget()
+                    if remaining <= 0.0:
+                        raise LabOrchestrationError("lab run deadline exhausted")
+                    trial_deadline = remaining / remaining_trials
+                    artifact = self._trial_runner(endpoint_url, index, trial_deadline)
+                    completed_at = float(self._clock())
+                    if not isfinite(completed_at) or completed_at > deadline_at:
+                        raise LabOrchestrationError("lab run deadline exhausted")
                     try:
                         digest = verify_artifact(artifact)
                     except (IntegrityError, KeyError, TypeError) as exc:
@@ -560,7 +583,8 @@ class LabRunOrchestrator:
                 collector.join(timeout=min(5.0, float(plan.telemetry_interval_s) + 2.0))
             if collector.is_alive():
                 raise LabOrchestrationError("telemetry collector did not stop")
-            scrape_once()
+            if remaining_budget() > 0.0:
+                scrape_once()
             return {
                 "benchmark_trials": trial_refs,
                 "telemetry": {

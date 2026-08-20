@@ -441,6 +441,73 @@ def test_final_telemetry_fetch_is_actually_deadline_bounded(tmp_path: Path) -> N
     )
 
 
+def test_final_scrape_does_not_exceed_consumed_run_budget(tmp_path: Path) -> None:
+    plan, lifecycle_plan = planned(tmp_path, trials=2)
+    backend = FakeLabBackend()
+    scraped = Event()
+    now = [0.0]
+    scrape_calls = 0
+
+    def clock() -> float:
+        return now[0]
+
+    def scrape(_url: str, _deadline: float) -> bytes:
+        nonlocal scrape_calls
+        scrape_calls += 1
+        scraped.set()
+        return b""
+
+    def trial(endpoint: str, index: int, deadline: float) -> dict[str, Any]:
+        assert scraped.wait(2.0)
+        now[0] += deadline
+        return sealed_trial(endpoint, index)
+
+    result = LabRunOrchestrator(
+        lifecycle=LabLifecycle(backend, _resource_suffix="deadbeef"),
+        endpoint=backend,
+        trial_runner=trial,
+        telemetry_fetcher=scrape,
+        telemetry_bindings=BINDINGS,
+        clock=clock,
+    ).execute(plan, lifecycle_plan)
+    assert result.state is LabState.SUCCEEDED
+    assert scrape_calls == 1
+
+
+def test_trial_returning_after_absolute_deadline_publishes_no_artifact(
+    tmp_path: Path,
+) -> None:
+    plan, lifecycle_plan = planned(tmp_path, trials=2)
+    backend = FakeLabBackend()
+    scraped = Event()
+    now = [0.0]
+
+    def clock() -> float:
+        return now[0]
+
+    def scrape(_url: str, _deadline: float) -> bytes:
+        scraped.set()
+        return b""
+
+    def trial(endpoint: str, index: int, deadline: float) -> dict[str, Any]:
+        assert scraped.wait(2.0)
+        now[0] += deadline + (0.25 if index == 2 else 0.0)
+        return sealed_trial(endpoint, index)
+
+    result = LabRunOrchestrator(
+        lifecycle=LabLifecycle(backend, _resource_suffix="deadbeef"),
+        endpoint=backend,
+        trial_runner=trial,
+        telemetry_fetcher=scrape,
+        telemetry_bindings=BINDINGS,
+        clock=clock,
+    ).execute(plan, lifecycle_plan)
+    assert result.state is LabState.FAILED
+    assert result.error_kind == "work_failed"
+    assert result.artifact is None
+    assert result.cleanup_verified is True
+
+
 def test_plan_lifecycle_binding_and_final_tamper_are_fail_closed(tmp_path: Path) -> None:
     plan, lifecycle_plan = planned(tmp_path, trials=2)
     backend = FakeLabBackend()

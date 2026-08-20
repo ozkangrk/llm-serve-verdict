@@ -296,10 +296,10 @@ Measured on the exact feature tree with Python 3.12 on 2026-08-20:
 
 | Gate | Result |
 |---|---|
-| Full pytest collection | **1008 passed** |
+| Full pytest collection | **1010 passed** |
 | Automated A/B focused tests | **16 passed** (unit + installed CLI/mock endpoints) |
 | Docker Lab focused tests | **63 passed** (backend + lifecycle + trusted planner/templates) |
-| Lab orchestration focused tests | **11 passed** (trials + live telemetry + cleanup + tamper) |
+| Lab orchestration focused tests | **13 passed** (trials + live telemetry + cleanup + tamper + run budget) |
 | Ruff | **passed** across `src`, `tests`, and `scripts` |
 | mypy | **passed** across **54 source files** |
 | Package build | `llm_serve_verdict-0.4.0` wheel + sdist |

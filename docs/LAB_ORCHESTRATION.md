@@ -46,9 +46,11 @@ not accepted.
 
 ## Live telemetry
 
-A daemon collector starts before the first benchmark trial, scrapes immediately,
-then waits the plan's bounded 1–60 second interval. It is stopped and joined
-before finalization, followed by one final scrape.
+A daemon collector starts before the first benchmark trial and scrapes immediately.
+All trials and scrapes share one absolute monotonic run budget. The collector then
+waits the plan's bounded 1–60 second interval; it is stopped and joined before
+finalization. A final scrape runs only when budget remains. A trial callback that
+returns after the absolute deadline fails the run and publishes no artifact.
 
 Only allowlisted Prometheus series enter the ring buffer. Each scrape is bounded
 to 64 KiB and 64 series; total samples follow the plan's maximum. Unknown raw

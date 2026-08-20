@@ -38,7 +38,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   997 tests; mypy over 53 source files.
 - Live DGX Spark capability smoke: Docker 29.2.1, NVIDIA runtime and exact local
   vLLM image digest resolved; no container/network created or left behind.
-- Lab orchestrator focused suite: 11 tests; full exact collection: 1008 tests;
+- Lab orchestrator focused suite: 13 tests; full exact collection: 1010 tests;
   mypy over 54 source files.
 - Docker 29.2.1 live-port regression fixed by replacing the incompatible
   `--internal` + host-publish combination with a dedicated bridge and strict
