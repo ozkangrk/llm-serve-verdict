@@ -42,7 +42,7 @@ workload and telemetry to a deterministic promotion decision.
                │                      │ read-only scrape
         Docker Engine           OpenAI + /metrics
                │                      │
-       disposable runtime container + private lab network
+       disposable runtime container + dedicated labelled bridge
 ```
 
 The Decision Authority package must never import or call Docker. Inference Lab
@@ -89,8 +89,11 @@ recipe output until separately specified.
 8. **Secrets stay environment-only.** Template/start payloads contain only env
    variable names. Secret values never enter run specs, Docker labels, argv,
    artifacts, logs, state, errors or DOM.
-9. **Private network.** Each run gets one internal `sv-lab-<run_id>` network.
-   Published ports bind only `127.0.0.1` on an allocator-selected port.
+9. **Loopback-only ingress.** Each run gets one dedicated labelled
+   `sv-lab-<run_id>` bridge. Published ports bind only `127.0.0.1` on an
+   allocator-selected port. Docker Engine 29.2.1 does not publish host ports
+   from an `--internal` bridge, so outbound network isolation is not claimed by
+   this backend; images are pulled before create and model mounts are local.
 10. **No container exec.** Readiness, inference and metrics use declared HTTP
     endpoints. The lifecycle adapter exposes no exec/attach/copy API.
 11. **Bounded resources.** Template declares GPU count, memory/CPU constraints,
@@ -217,7 +220,7 @@ internal capability with only:
 
 - inspect engine/version/capabilities;
 - resolve/pull one digest-pinned image;
-- create/remove one internal labelled network;
+- create/remove one dedicated labelled bridge network;
 - create/start/inspect/stop/remove one labelled container;
 - read bounded container logs;
 - verify owned resources absent.

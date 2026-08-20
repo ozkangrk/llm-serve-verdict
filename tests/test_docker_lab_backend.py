@@ -175,7 +175,7 @@ def test_backend_emits_only_hardened_allowlisted_docker_commands(tmp_path: Path)
     backend.wait_ready("sv-lab-ctr-x-deadbeef", own, 5.0)
 
     network = next(call[0] for call in runner.calls if call[0][1:3] == ("network", "create"))
-    assert "--internal" in network
+    assert "--internal" not in network
     create = next(call[0] for call in runner.calls if call[0][1] == "create")
     joined = " ".join(create)
     for required in (
@@ -184,6 +184,10 @@ def test_backend_emits_only_hardened_allowlisted_docker_commands(tmp_path: Path)
         "--security-opt=no-new-privileges",
         "--gpus=1",
         "--publish=127.0.0.1::8000",
+        "--tmpfs=/tmp:rw,nosuid,size=",
+        "--tmpfs=/root/.cache:rw,nosuid,size=",
+        "--env=HF_HUB_OFFLINE=1",
+        "--env=TRANSFORMERS_OFFLINE=1",
         "readonly",
         str(cfg.model_host_path),
         cfg.plan.image,
@@ -197,6 +201,7 @@ def test_backend_emits_only_hardened_allowlisted_docker_commands(tmp_path: Path)
         "--ipc=host",
         "/var/run/docker.sock",
         "--cap-add",
+        "noexec",
     ):
         assert forbidden not in joined
     assert backend.endpoint_url == "http://127.0.0.1:49152/v1"

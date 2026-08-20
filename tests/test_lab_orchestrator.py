@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+import time
 from copy import deepcopy
 from pathlib import Path
 from threading import Event
@@ -339,6 +341,104 @@ def test_telemetry_is_collected_while_a_trial_is_running(tmp_path: Path) -> None
     offsets = [item["offset_s"] for item in result.artifact["telemetry"]["samples"]]
     assert offsets == sorted(offsets)
     assert all(offset >= 0 for offset in offsets)
+
+
+def test_extreme_finite_telemetry_summary_stays_finite(tmp_path: Path) -> None:
+    plan, lifecycle_plan = planned(tmp_path, trials=2)
+    backend = FakeLabBackend()
+    values = iter((1.7e308, -1.7e308, 1.7e308, -1.7e308))
+
+    def scrape(_url: str, _deadline: float) -> bytes:
+        try:
+            value = next(values)
+        except StopIteration:
+            value = -1.7e308
+        return f'vllm:num_requests_running{{engine="0"}} {value}\n'.encode()
+
+    result = LabRunOrchestrator(
+        lifecycle=LabLifecycle(backend, _resource_suffix="deadbeef"),
+        endpoint=backend,
+        trial_runner=lambda endpoint, index, _deadline: sealed_trial(endpoint, index),
+        telemetry_fetcher=scrape,
+        telemetry_bindings=BINDINGS,
+    ).execute(plan, lifecycle_plan)
+    assert result.state is LabState.SUCCEEDED
+    assert result.artifact is not None
+    summary = result.artifact["telemetry"]["summary"][0]
+    assert all(
+        math.isfinite(summary[key])
+        for key in ("min", "mean", "p50", "p95", "p99", "max", "latest")
+    )
+
+
+def test_duplicate_trial_artifact_is_not_repeated_evidence(tmp_path: Path) -> None:
+    plan, lifecycle_plan = planned(tmp_path, trials=2)
+    backend = FakeLabBackend()
+    duplicate = sealed_trial(backend.endpoint_url, 1)
+    result = LabRunOrchestrator(
+        lifecycle=LabLifecycle(backend, _resource_suffix="deadbeef"),
+        endpoint=backend,
+        trial_runner=lambda _endpoint, _index, _deadline: deepcopy(duplicate),
+        telemetry_fetcher=lambda _url, _deadline: b"",
+        telemetry_bindings=BINDINGS,
+    ).execute(plan, lifecycle_plan)
+    assert result.state is LabState.FAILED
+    assert result.artifact is None
+
+
+def test_malformed_loopback_url_is_rejected_before_trials(tmp_path: Path) -> None:
+    plan, lifecycle_plan = planned(tmp_path, trials=2)
+    backend = FakeLabBackend()
+    backend.endpoint_url = "http://127.0.0.1:99999/x\r\nHost:evil"
+    calls = 0
+
+    def trial(_endpoint: str, _index: int, _deadline: float) -> dict[str, Any]:
+        nonlocal calls
+        calls += 1
+        return {}
+
+    result = LabRunOrchestrator(
+        lifecycle=LabLifecycle(backend, _resource_suffix="deadbeef"),
+        endpoint=backend,
+        trial_runner=trial,
+        telemetry_fetcher=lambda _url, _deadline: b"",
+        telemetry_bindings=BINDINGS,
+    ).execute(plan, lifecycle_plan)
+    assert result.state is LabState.FAILED
+    assert result.artifact is None
+    assert calls == 0
+
+
+def test_final_telemetry_fetch_is_actually_deadline_bounded(tmp_path: Path) -> None:
+    plan, lifecycle_plan = planned(tmp_path, trials=2)
+    backend = FakeLabBackend()
+    calls = 0
+    blocker = Event()
+
+    def scrape(_url: str, _deadline: float) -> bytes:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return b""
+        blocker.wait(30.0)
+        return b""
+
+    started = time.monotonic()
+    result = LabRunOrchestrator(
+        lifecycle=LabLifecycle(backend, _resource_suffix="deadbeef"),
+        endpoint=backend,
+        trial_runner=lambda endpoint, index, _deadline: sealed_trial(endpoint, index),
+        telemetry_fetcher=scrape,
+        telemetry_bindings=BINDINGS,
+    ).execute(plan, lifecycle_plan)
+    elapsed = time.monotonic() - started
+    assert elapsed < 5.0
+    assert result.state is LabState.SUCCEEDED
+    assert result.artifact is not None
+    assert any(
+        failure["status"] == "unavailable"
+        for failure in result.artifact["telemetry"]["failures"]
+    )
 
 
 def test_plan_lifecycle_binding_and_final_tamper_are_fail_closed(tmp_path: Path) -> None:

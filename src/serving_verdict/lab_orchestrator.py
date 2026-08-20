@@ -11,10 +11,10 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from math import floor
-from statistics import fmean
+from math import floor, fsum, isfinite
 from threading import Event, Thread
 from typing import Any, Protocol, runtime_checkable
+from urllib.parse import urlsplit
 
 from serving_verdict.artifact import verify_artifact
 from serving_verdict.canonical import canonicalize, digest_payload
@@ -35,7 +35,7 @@ from serving_verdict.lab_telemetry import (
 )
 
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-_LOOPBACK_URL_RE = re.compile(r"^http://127\.0\.0\.1:[0-9]{1,5}(?:/[^?#]*)?$|^http://\[::1\]:[0-9]{1,5}(?:/[^?#]*)?$")
+
 _SCHEMA = "serving-verdict.lab-run.v0.5"
 _RUN_SPEC_KEYS = {
     "schema_version",
@@ -148,7 +148,18 @@ def _percentile(values: list[float], quantile: float) -> float:
     lower = floor(position)
     upper = min(lower + 1, len(ordered) - 1)
     fraction = position - lower
-    return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
+    try:
+        result = fsum(
+            (
+                ordered[lower] * (1.0 - fraction),
+                ordered[upper] * fraction,
+            )
+        )
+    except OverflowError as exc:
+        raise TelemetryError("telemetry percentile overflowed") from exc
+    if not isfinite(result):
+        raise TelemetryError("telemetry percentile is not finite")
+    return result
 
 
 def _telemetry_summary(samples: tuple[TelemetrySample, ...]) -> list[dict[str, Any]]:
@@ -162,6 +173,12 @@ def _telemetry_summary(samples: tuple[TelemetrySample, ...]) -> list[dict[str, A
     for (metric_id, labels, unit, direction), series in sorted(groups.items()):
         ordered = sorted(series, key=lambda item: item.offset_s)
         values = [item.value for item in ordered]
+        try:
+            mean = fsum(value / len(values) for value in values)
+        except OverflowError as exc:
+            raise TelemetryError("telemetry mean overflowed") from exc
+        if not isfinite(mean):
+            raise TelemetryError("telemetry mean is not finite")
         result.append(
             {
                 "metric_id": metric_id,
@@ -170,7 +187,7 @@ def _telemetry_summary(samples: tuple[TelemetrySample, ...]) -> list[dict[str, A
                 "direction": direction,
                 "count": len(values),
                 "min": min(values),
-                "mean": fmean(values),
+                "mean": mean,
                 "p50": _percentile(values, 0.50),
                 "p95": _percentile(values, 0.95),
                 "p99": _percentile(values, 0.99),
@@ -272,6 +289,7 @@ def verify_lab_artifact(document: dict[str, Any]) -> str:
             or trial.get("trial") != expected_index
             or trial.get("run_status") != "ok"
             or not isinstance(trial.get("run_id"), str)
+            or re.fullmatch(r"svrun-[0-9a-f]{32}", trial["run_id"]) is None
             or not isinstance(trial.get("artifact_digest"), str)
             or _DIGEST_RE.fullmatch(trial["artifact_digest"]) is None
         ):
@@ -281,8 +299,15 @@ def verify_lab_artifact(document: dict[str, Any]) -> str:
         or set(telemetry) != {"samples", "failures", "summary"}
         or not isinstance(telemetry.get("samples"), list)
         or not isinstance(telemetry.get("failures"), list)
-        or len(telemetry["samples"]) > spec.get("telemetry_max_samples", -1)
-        or len(telemetry["failures"]) > spec.get("telemetry_max_samples", -1)
+    ):
+        raise LabOrchestrationError("lab artifact telemetry is invalid")
+    telemetry_limit = spec.get("telemetry_max_samples")
+    if (
+        isinstance(telemetry_limit, bool)
+        or not isinstance(telemetry_limit, int)
+        or not 1 <= telemetry_limit <= 3600
+        or len(telemetry["samples"]) > telemetry_limit
+        or len(telemetry["failures"]) > telemetry_limit
     ):
         raise LabOrchestrationError("lab artifact telemetry is invalid")
     offsets: list[float] = []
@@ -377,7 +402,26 @@ class LabRunOrchestrator:
 
     @staticmethod
     def _loopback_url(value: object, name: str) -> str:
-        if not isinstance(value, str) or _LOOPBACK_URL_RE.fullmatch(value) is None:
+        if not isinstance(value, str) or any(ord(char) < 32 for char in value):
+            raise LabOrchestrationError(f"runtime {name} URL must be loopback-only")
+        try:
+            parsed = urlsplit(value)
+            port = parsed.port
+        except ValueError as exc:
+            raise LabOrchestrationError(
+                f"runtime {name} URL must be loopback-only"
+            ) from exc
+        if (
+            parsed.scheme != "http"
+            or parsed.hostname not in {"127.0.0.1", "::1"}
+            or parsed.username is not None
+            or parsed.password is not None
+            or port is None
+            or not 1 <= port <= 65535
+            or parsed.query
+            or parsed.fragment
+            or not parsed.path.startswith("/")
+        ):
             raise LabOrchestrationError(f"runtime {name} URL must be loopback-only")
         return value
 
@@ -412,14 +456,42 @@ class LabRunOrchestrator:
                 max_series=min(64, max(1, len(self._bindings) * 8)),
             )
             trial_refs: list[dict[str, Any]] = []
+            seen_trial_digests: set[str] = set()
             expected_context: tuple[Any, ...] | None = None
             telemetry_started = self._clock()
+
+            def fetch_bounded(timeout_s: float) -> bytes:
+                done = Event()
+                value: dict[str, Any] = {}
+
+                def invoke() -> None:
+                    try:
+                        value["body"] = self._telemetry_fetcher(metrics_url, timeout_s)
+                    except Exception as exc:
+                        value["error"] = exc
+                    finally:
+                        done.set()
+
+                worker = Thread(
+                    target=invoke,
+                    name="serving-verdict-lab-telemetry-fetch",
+                    daemon=True,
+                )
+                worker.start()
+                if not done.wait(timeout_s):
+                    raise TimeoutError("telemetry fetch deadline exceeded")
+                if "error" in value:
+                    raise RuntimeError("telemetry fetch failed") from value["error"]
+                body = value.get("body")
+                if not isinstance(body, bytes):
+                    raise TelemetryError("telemetry fetch result must be bytes")
+                return body
 
             def scrape_once() -> None:
                 offset = max(0.0, float(self._clock() - telemetry_started))
                 try:
-                    raw = self._telemetry_fetcher(
-                        metrics_url, min(float(plan.telemetry_interval_s), per_trial_deadline)
+                    raw = fetch_bounded(
+                        min(float(plan.telemetry_interval_s), per_trial_deadline)
                     )
                     samples = parse_prometheus_snapshot(
                         raw,
@@ -457,6 +529,9 @@ class LabRunOrchestrator:
                         raise LabOrchestrationError("benchmark trial integrity failed") from exc
                     if artifact.get("run_status") != "ok":
                         raise LabOrchestrationError("benchmark trial hard gate failed")
+                    if digest in seen_trial_digests:
+                        raise LabOrchestrationError("benchmark trial artifact was replayed")
+                    seen_trial_digests.add(digest)
                     context = self._context(artifact)
                     if context[1] != endpoint_url or context[3] is not False:
                         raise LabOrchestrationError("benchmark trial endpoint binding failed")

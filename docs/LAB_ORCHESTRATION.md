@@ -95,7 +95,8 @@ Implemented and unit-tested in this slice:
 - concurrent bounded telemetry collection;
 - telemetry distribution summaries;
 - cleanup-gated final lab artifact;
-- self-consistent manifest-forge rejection.
+- cross-field manifest reseal drift rejection (artifact authenticity still
+  requires the pending signature/bundle gate).
 
 Still pending before v0.5 release:
 

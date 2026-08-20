@@ -323,7 +323,6 @@ class DockerLabBackend:
                 "docker",
                 "network",
                 "create",
-                "--internal",
                 *self._label_args(labels),
                 resource_id,
             ),
@@ -367,7 +366,10 @@ class DockerLabBackend:
                 f"--memory={self._config.memory_limit_bytes}b",
                 "--pids-limit=512",
                 f"--shm-size={self._config.tmpfs_bytes}b",
-                f"--tmpfs=/tmp:rw,noexec,nosuid,size={self._config.tmpfs_bytes}",
+                f"--tmpfs=/tmp:rw,nosuid,size={self._config.tmpfs_bytes}",
+                f"--tmpfs=/root/.cache:rw,nosuid,size={self._config.tmpfs_bytes}",
+                "--env=HF_HUB_OFFLINE=1",
+                "--env=TRANSFORMERS_OFFLINE=1",
                 (
                     "--mount=type=bind,"
                     f"src={self._config.model_host_path},"
