@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +14,9 @@ from serving_verdict.lab_templates import RuntimeTemplate, TemplateError
 
 class LabPlanError(ValueError):
     """A lab plan cannot be constructed safely; no backend may be called."""
+
+
+_PLAN_AUTHORITY = object()
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +53,41 @@ class LabRunSpec:
     statistical_seed: int
     telemetry_interval_s: int
     telemetry_max_samples: int
+    _authority: object = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self._authority is not _PLAN_AUTHORITY:
+            raise LabPlanError("LabRunSpec must be created by the trusted planner")
+        if self.schema_version != "serving-verdict.lab-run-spec.v0.5":
+            raise LabPlanError("lab run spec schema is invalid")
+        if not isinstance(self.effective_argv, tuple) or not self.effective_argv or not all(
+            isinstance(item, str) and item for item in self.effective_argv
+        ):
+            raise LabPlanError("effective argv is invalid")
+        body = _run_spec_body(self)
+        expected_digest = digest_payload(canonicalize(body))
+        expected_run_id = "lab-" + hashlib.sha256(canonicalize(body)).hexdigest()[:24]
+        if self.plan_digest != expected_digest or self.run_id != expected_run_id:
+            raise LabPlanError("lab run spec identity mismatch")
+
+
+def _run_spec_body(spec: LabRunSpec) -> dict[str, Any]:
+    return {
+        "schema_version": spec.schema_version,
+        "template_id": spec.template_id,
+        "template_version": spec.template_version,
+        "template_digest": spec.template_digest,
+        "engine": spec.engine,
+        "image": spec.image,
+        "effective_argv": list(spec.effective_argv),
+        "model_ref": spec.model_ref,
+        "model_manifest_digest": spec.model_manifest_digest,
+        "benchmark_profile_digest": spec.benchmark_profile_digest,
+        "trial_count": spec.trial_count,
+        "statistical_seed": spec.statistical_seed,
+        "telemetry_interval_s": spec.telemetry_interval_s,
+        "telemetry_max_samples": spec.telemetry_max_samples,
+    }
 
 
 def _valid_positive_int(value: object, name: str, maximum: int) -> int:
@@ -221,4 +259,5 @@ def plan_lab_run(
         plan_digest=plan_digest,
         **{key: value for key, value in body.items() if key != "effective_argv"},
         effective_argv=effective_argv,
+        _authority=_PLAN_AUTHORITY,
     )

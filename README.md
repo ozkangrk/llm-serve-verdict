@@ -222,9 +222,13 @@ or dashboard. See the point-in-time [competitor reconnaissance](docs/COMPETITOR_
 - bounded Prometheus-text telemetry normalization and ring buffer;
 - owned lifecycle state machine with cancellation, cleanup fencing and
   `CLEANUP_FAILED` terminal semantics.
+- explicitly enabled, narrow Docker GPU backend with digest reuse, hardened
+  create argv, loopback ports and exact ownership-label cleanup fencing;
 
 These foundations do not yet claim a shipped production Docker control plane.
-Real Docker/GPU E2E, Lab/Live/Decide APIs and final UI remain v0.5 release gates.
+Docker/NVIDIA capability and local image-digest resolution are live-smoke
+verified; real model-container benchmark/telemetry E2E, Lab/Live/Decide APIs and
+final UI remain v0.5 release gates.
 
 ## Trust model in one minute
 
@@ -289,10 +293,11 @@ Measured on the exact feature tree with Python 3.12 on 2026-08-20:
 
 | Gate | Result |
 |---|---|
-| Full pytest collection | **989 passed** |
+| Full pytest collection | **997 passed** |
 | Automated A/B focused tests | **16 passed** (unit + installed CLI/mock endpoints) |
+| Docker Lab focused tests | **63 passed** (backend + lifecycle + trusted planner/templates) |
 | Ruff | **passed** across `src`, `tests`, and `scripts` |
-| mypy | **passed** across **52 source files** |
+| mypy | **passed** across **53 source files** |
 | Package build | `llm_serve_verdict-0.4.0` wheel + sdist |
 | A/B output safety | API-key values absent; atomic directory; digest/tamper tests passed |
 | Installed-wheel A/B E2E | 2 trials/arm, 6 JSON artifacts, `verified: true` |
@@ -306,6 +311,7 @@ matrix; local numbers above are updated only from a real exact-tree run.
 | Document | Purpose |
 |---|---|
 | [Automated A/B experiments](docs/AB_EXPERIMENT.md) | Repeated endpoint orchestration, artifacts and decision order |
+| [Docker Lab backend](docs/DOCKER_LAB_BACKEND.md) | Opt-in execution capability, hardening and current dogfood boundary |
 | [Concrete scenarios](docs/SCENARIOS.md) | Four end-to-end LLM serving decisions in plain language |
 | [PRD v0.4 → v1.0](docs/PRD-v0.4-v1.0.md) | Product direction and acceptance contracts |
 | [Inference Lab spec](docs/INFERENCE_LAB_SPEC.md) | Opt-in runtime, benchmark, telemetry and UI contract |

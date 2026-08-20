@@ -137,15 +137,33 @@ def test_work_receives_effective_run_deadline() -> None:
 
 def test_resource_ids_and_ownership_are_fenced() -> None:
     backend = FakeBackend()
-    LabLifecycle(backend).execute(plan(), work=lambda _deadline: None)
+    LabLifecycle(backend, _resource_suffix="deadbeef").execute(
+        plan(), work=lambda _deadline: None
+    )
     network_call = next(call for call in backend.calls if call[0] == "create_network")
     container_call = next(call for call in backend.calls if call[0] == "create_container")
-    assert network_call[1] == f"sv-lab-net-{RUN_ID}"
-    assert container_call[1] == f"sv-lab-ctr-{RUN_ID}"
+    assert network_call[1] == f"sv-lab-net-{RUN_ID}-deadbeef"
+    assert container_call[1] == f"sv-lab-ctr-{RUN_ID}-deadbeef"
     ownership = network_call[2]
     assert ownership.owner == "serving-verdict-lab"
     assert ownership.run_id == RUN_ID
     assert ownership.template_digest == DIGEST
+
+
+def test_resource_suffix_is_strict_and_two_instances_do_not_collide() -> None:
+    with pytest.raises(LifecycleError, match="resource suffix"):
+        LabLifecycle(FakeBackend(), _resource_suffix="../bad")
+    first = FakeBackend()
+    second = FakeBackend()
+    LabLifecycle(first, _resource_suffix="11111111").execute(
+        plan(), work=lambda _deadline: None
+    )
+    LabLifecycle(second, _resource_suffix="22222222").execute(
+        plan(), work=lambda _deadline: None
+    )
+    first_id = next(call[1] for call in first.calls if call[0] == "create_container")
+    second_id = next(call[1] for call in second.calls if call[0] == "create_container")
+    assert first_id != second_id
 
 
 @pytest.mark.parametrize("failure", ["inspect", "pull", "create_network", "create_container", "start", "ready"])
