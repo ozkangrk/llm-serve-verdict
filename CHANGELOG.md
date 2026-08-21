@@ -19,6 +19,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   start schema, environment-plus-executor enablement, single-flight capacity,
   cooperative cancellation, cleanup-first result suppression and deterministic
   telemetry distribution snapshots.
+- Offline Lab / Live / Decide workspace with built-in-template controls, owned
+  lifecycle timeline, bounded distribution cards, operator-disabled state and
+  cleanup-gated result rendering.
 - Opt-in Docker Inference Lab backend with server-environment enablement,
   digest-pinned local-image reuse, NVIDIA runtime inspection, dedicated labelled
   bridge networks, hardened container argv, loopback ports, bounded readiness and
@@ -47,6 +50,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   into the profile binding; successful lifecycle event traces are exact.
 - Lab/Live API focused suite: 8 tests; combined full exact collection: 1019 tests;
   mypy over 55 source files.
+- Lab UI contract/QuickJS/branding focused suite: 31 tests; full collection:
+  1024 tests. Real-browser injected-executor desktop/mobile checks report zero
+  console errors, zero horizontal overflow and no visible button below 44px.
 - Docker 29.2.1 live-port regression fixed by replacing the incompatible
   `--internal` + host-publish combination with a dedicated bridge and strict
   loopback ingress; telemetry overflow/replay/URL/deadline regressions added.
