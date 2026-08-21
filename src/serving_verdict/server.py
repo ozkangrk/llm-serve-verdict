@@ -25,11 +25,12 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from collections.abc import Callable
+import os
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, Response
 
 from serving_verdict import __version__
@@ -51,6 +52,7 @@ ONLY_BIND_HOST = "127.0.0.1"
 DEFAULT_PORT = 8787
 
 ARTIFACTS_SCHEMA_VERSION = "serving-verdict.artifacts.v0.1"
+_JSON_BODY = Body(...)
 
 
 def bundle_rows(data_dir: Path) -> list[dict[str, Any]]:
@@ -170,6 +172,8 @@ def create_app(
     data_dir: str | Path,
     *,
     automation_runner: Callable[[EndpointConfig, str], dict[str, Any]] | None = None,
+    lab_executor: Any | None = None,
+    lab_environment: Mapping[str, str] | None = None,
 ) -> FastAPI:
     """Build the read-only FastAPI app.
 
@@ -184,6 +188,12 @@ def create_app(
     from serving_verdict.automation import JobManager, default_benchmark_runner
 
     jobs = JobManager(automation_runner or default_benchmark_runner)
+    from serving_verdict.lab_jobs import LabJobManager
+
+    lab_jobs = LabJobManager(
+        lab_executor,
+        environment=os.environ if lab_environment is None else lab_environment,
+    )
     app = FastAPI(title="LLM ServeVerdict", version=__version__)
 
     @app.exception_handler(HTTPException)
@@ -267,6 +277,55 @@ def create_app(
         try:
             return jobs.cancel(job_id).public_payload()
         except AutomationError as exc:
+            raise HTTPException(status_code=404, detail={"error": str(exc)}) from exc
+
+    @app.get("/api/v1/lab/capabilities")
+    def lab_capabilities() -> dict[str, Any]:
+        return lab_jobs.capabilities()
+
+    @app.post("/api/v1/lab/jobs", status_code=202)
+    def start_lab_job(payload: Any = _JSON_BODY) -> dict[str, Any]:
+        from serving_verdict.lab_jobs import LabJobError, parse_lab_start_payload
+
+        if not lab_jobs.capabilities()["enabled"]:
+            raise HTTPException(
+                status_code=503,
+                detail={"error": "Inference Lab is disabled or unavailable"},
+            )
+        try:
+            request = parse_lab_start_payload(payload)
+        except LabJobError as exc:
+            raise HTTPException(status_code=400, detail={"error": str(exc)}) from exc
+        try:
+            return lab_jobs.start(request).public_payload()
+        except LabJobError as exc:
+            raise HTTPException(status_code=409, detail={"error": str(exc)}) from exc
+
+    @app.get("/api/v1/lab/jobs/{job_id}")
+    def lab_job(job_id: str) -> dict[str, Any]:
+        from serving_verdict.lab_jobs import LabJobError
+
+        try:
+            return lab_jobs.get(job_id).public_payload()
+        except LabJobError as exc:
+            raise HTTPException(status_code=404, detail={"error": str(exc)}) from exc
+
+    @app.get("/api/v1/lab/jobs/{job_id}/live")
+    def lab_live(job_id: str) -> dict[str, Any]:
+        from serving_verdict.lab_jobs import LabJobError
+
+        try:
+            return lab_jobs.get(job_id).live_payload()
+        except LabJobError as exc:
+            raise HTTPException(status_code=404, detail={"error": str(exc)}) from exc
+
+    @app.post("/api/v1/lab/jobs/{job_id}/cancel")
+    def cancel_lab_job(job_id: str) -> dict[str, Any]:
+        from serving_verdict.lab_jobs import LabJobError
+
+        try:
+            return lab_jobs.cancel(job_id).public_payload()
+        except LabJobError as exc:
             raise HTTPException(status_code=404, detail={"error": str(exc)}) from exc
 
     @app.get("/api/v1/verdicts")

@@ -15,6 +15,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   workload context, run statuses, metric samples, statistical policy and final
   decision; `bench ab-verify` checks the bounded directory before CI consumes
   it, and API-key values are rejected from runner artifacts.
+- Disabled-by-default `/api/v1/lab/*` job and Live snapshot surface with exact
+  start schema, environment-plus-executor enablement, single-flight capacity,
+  cooperative cancellation, cleanup-first result suppression and deterministic
+  telemetry distribution snapshots.
 - Opt-in Docker Inference Lab backend with server-environment enablement,
   digest-pinned local-image reuse, NVIDIA runtime inspection, dedicated labelled
   bridge networks, hardened container argv, loopback ports, bounded readiness and
@@ -38,8 +42,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   997 tests; mypy over 53 source files.
 - Live DGX Spark capability smoke: Docker 29.2.1, NVIDIA runtime and exact local
   vLLM image digest resolved; no container/network created or left behind.
-- Lab orchestrator focused suite: 13 tests; full exact collection: 1010 tests;
-  mypy over 54 source files.
+- Lab orchestrator focused suite: 14 tests; full exact collection: 1019 tests;
+  mypy over 55 source files. Real quick-runner bare content hashes are normalized
+  into the profile binding; successful lifecycle event traces are exact.
+- Lab/Live API focused suite: 8 tests; combined full exact collection: 1019 tests;
+  mypy over 55 source files.
 - Docker 29.2.1 live-port regression fixed by replacing the incompatible
   `--internal` + host-publish combination with a dedicated bridge and strict
   loopback ingress; telemetry overflow/replay/URL/deadline regressions added.

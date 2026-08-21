@@ -84,7 +84,12 @@ class TelemetrySample:
                 not isinstance(pair, tuple)
                 or len(pair) != 2
                 or not all(isinstance(item, str) for item in pair)
+                or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", pair[0]) is None
                 or not _SAFE_LABEL_RE.fullmatch(pair[1])
+                or "sk-" in pair[1].lower()
+                or pair[1].lower().startswith("bearer")
+                or "/" in pair[1]
+                or "\\" in pair[1]
             ):
                 raise TelemetryError("telemetry sample labels are invalid")
         object.__setattr__(self, "labels", labels)
