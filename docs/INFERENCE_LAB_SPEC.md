@@ -1,8 +1,9 @@
 # LLM ServeVerdict Inference Lab — Normative Product and Runtime Contract
 
 **Document:** v0.5 Inference Lab specification
-**Status:** Approved for implementation
+**Status:** Foundation implemented; broad development paused pending the sequential single-GPU amendment
 **Date:** 2026-08-20
+**Pause decision:** [Project status and continuation target](PROJECT_STATUS.md)
 **Normative dependencies:** `MVP_SPEC.md`, `docs/PRD-v0.4-v1.0.md`,
 `docs/STATISTICS.md`, `docs/BUNDLE_SCHEMA.md`, `docs/ADAPTERS.md`
 

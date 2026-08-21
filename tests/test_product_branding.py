@@ -40,8 +40,19 @@ def test_readme_explains_actor_problem_workflow_and_three_decisions() -> None:
         "llm-serve-verdict bench ab",
         "alternates execution order each round",
         "Automated A/B experiments",
+        "paused at the product-validation gate",
+        "Project status and continuation target",
     ):
         assert phrase in readme
+    status = (ROOT / "docs" / "PROJECT_STATUS.md").read_text(encoding="utf-8")
+    for phrase in (
+        "single-GPU change-control and promotion gate",
+        "A-pre",
+        "A-post",
+        "verified incumbent restoration",
+        "Stop criterion",
+    ):
+        assert phrase in status
 
 
 def test_user_facing_brand_has_no_old_repository_or_display_name() -> None:
