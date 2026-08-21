@@ -39,10 +39,11 @@ The orchestrator freezes and rechecks across all trials:
 - workload hash;
 - hard-gate `run_status == ok`.
 
-The profile/procedure/protocol/workload tuple is reduced to
-`serving-verdict.benchmark-profile-binding.v1`. It must equal the digest already
-bound into `LabRunSpec`. A self-consistent trial set for a different workload is
-not accepted.
+The real quick runner emits protocol/workload SHA-256 values as bare 64-hex
+strings. Binding canonicalizes an optional `sha256:` spelling to that bare form
+before hashing. The resulting `serving-verdict.benchmark-profile-binding.v1`
+digest must equal the digest already bound into `LabRunSpec`. A self-consistent
+trial set for a different workload is not accepted.
 
 ## Live telemetry
 
@@ -59,6 +60,7 @@ exception text are never stored.
 
 Fixed scrape failure categories:
 
+- `timeout`
 - `invalid`
 - `unavailable`
 

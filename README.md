@@ -226,12 +226,14 @@ or dashboard. See the point-in-time [competitor reconnaissance](docs/COMPETITOR_
   create argv, loopback ports and exact ownership-label cleanup fencing;
 - cleanup-gated Lab run orchestration with repeated sealed benchmark trials,
   concurrent bounded telemetry and min/mean/p50/p95/p99/max/latest summaries.
+- disabled-by-default Lab job API with strict start requests, cooperative
+  cancellation and bounded Live statistics snapshots.
 
 These foundations do not yet claim a shipped production Docker control plane.
 Docker/NVIDIA capability and local image-digest resolution are live-smoke
-verified; orchestration is fake-backend verified. Real model-container
-benchmark/telemetry E2E, Lab/Live/Decide APIs and final UI remain v0.5 release
-gates.
+verified; orchestration and the snapshot API are injected-executor verified.
+Real executor wiring, model-container benchmark/telemetry E2E and the final
+Lab/Live/Decide UI remain v0.5 release gates.
 
 ## Trust model in one minute
 
@@ -296,12 +298,13 @@ Measured on the exact feature tree with Python 3.12 on 2026-08-20:
 
 | Gate | Result |
 |---|---|
-| Full pytest collection | **1010 passed** |
+| Full pytest collection | **1019 passed** |
 | Automated A/B focused tests | **16 passed** (unit + installed CLI/mock endpoints) |
 | Docker Lab focused tests | **63 passed** (backend + lifecycle + trusted planner/templates) |
-| Lab orchestration focused tests | **13 passed** (trials + live telemetry + cleanup + tamper + run budget) |
+| Lab orchestration focused tests | **14 passed** (real quick binding + trials + live telemetry + cleanup + tamper + run budget) |
+| Lab/Live API focused tests | **8 passed** (gate + parsing + bounds + state + snapshot + cancel + cleanup) |
 | Ruff | **passed** across `src`, `tests`, and `scripts` |
-| mypy | **passed** across **54 source files** |
+| mypy | **passed** across **55 source files** |
 | Package build | `llm_serve_verdict-0.4.0` wheel + sdist |
 | A/B output safety | API-key values absent; atomic directory; digest/tamper tests passed |
 | Installed-wheel A/B E2E | 2 trials/arm, 6 JSON artifacts, `verified: true` |
@@ -317,6 +320,7 @@ matrix; local numbers above are updated only from a real exact-tree run.
 | [Automated A/B experiments](docs/AB_EXPERIMENT.md) | Repeated endpoint orchestration, artifacts and decision order |
 | [Docker Lab backend](docs/DOCKER_LAB_BACKEND.md) | Opt-in execution capability, hardening and current dogfood boundary |
 | [Lab run orchestration](docs/LAB_ORCHESTRATION.md) | Repeated trials, live telemetry and cleanup-gated evidence |
+| [Lab jobs and Live API](docs/LAB_LIVE_API.md) | Environment gate, bounded jobs and deterministic snapshot contract |
 | [Concrete scenarios](docs/SCENARIOS.md) | Four end-to-end LLM serving decisions in plain language |
 | [PRD v0.4 → v1.0](docs/PRD-v0.4-v1.0.md) | Product direction and acceptance contracts |
 | [Inference Lab spec](docs/INFERENCE_LAB_SPEC.md) | Opt-in runtime, benchmark, telemetry and UI contract |

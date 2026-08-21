@@ -26,13 +26,14 @@ from serving_verdict.lab_orchestrator import (
 from serving_verdict.lab_planner import LabRunSpec, plan_lab_run
 from serving_verdict.lab_telemetry import MetricBinding
 from serving_verdict.lab_templates import bind_builtin_template
+from serving_verdict.profile import get_profile, protocol_hash, workload_hash
 
 IMAGE = "docker.io/vllm/vllm-openai@sha256:" + "a" * 64
 PROFILE_DIGEST = benchmark_profile_binding_digest(
     profile_name="quick",
     procedure_version="quick-v1",
-    protocol_hash="sha256:" + "c" * 64,
-    workload_hash="sha256:" + "d" * 64,
+    protocol_hash="c" * 64,
+    workload_hash="d" * 64,
 )
 
 
@@ -134,7 +135,14 @@ def planned(
     return plan, lifecycle
 
 
-def sealed_trial(endpoint: str, index: int, *, served: str = "qwen") -> dict[str, Any]:
+def sealed_trial(
+    endpoint: str,
+    index: int,
+    *,
+    served: str = "qwen",
+    protocol: str = "c" * 64,
+    workload: str = "d" * 64,
+) -> dict[str, Any]:
     artifact: dict[str, Any] = {
         "schema_version": "serving-verdict.benchmark-run.v1",
         "run_id": f"svrun-{'a' * 30}{index:02d}",
@@ -159,8 +167,8 @@ def sealed_trial(endpoint: str, index: int, *, served: str = "qwen") -> dict[str
         },
         "model": {"requested": "qwen", "served": served, "matches_requested": True},
         "profile": {"name": "quick", "procedure_version": "quick-v1"},
-        "protocol_hash": "sha256:" + "c" * 64,
-        "workload_hash": "sha256:" + "d" * 64,
+        "protocol_hash": protocol,
+        "workload_hash": workload,
         "error_probe": {"expected_behavior_met": True},
         "warmup_requests": [],
         "requests": [],
@@ -252,6 +260,35 @@ def test_success_runs_repeated_trials_scrapes_telemetry_and_seals_after_cleanup(
         "remove_network",
         "verify_absent",
     ]
+
+
+def test_real_quick_profile_hashes_bind_to_orchestrator_trials(tmp_path: Path) -> None:
+    quick = get_profile("quick")
+    protocol = protocol_hash(quick)
+    workload = workload_hash(quick)
+    assert len(protocol) == 64 and not protocol.startswith("sha256:")
+    binding = benchmark_profile_binding_digest(
+        profile_name=quick.name,
+        procedure_version=quick.procedure_version,
+        protocol_hash=protocol,
+        workload_hash=workload,
+    )
+    plan, lifecycle_plan = planned(tmp_path, trials=2, profile_digest=binding)
+    backend = FakeLabBackend()
+    result = LabRunOrchestrator(
+        lifecycle=LabLifecycle(backend, _resource_suffix="deadbeef"),
+        endpoint=backend,
+        trial_runner=lambda endpoint, index, _deadline: sealed_trial(
+            endpoint,
+            index,
+            protocol=protocol,
+            workload=workload,
+        ),
+        telemetry_fetcher=lambda _url, _deadline: b"",
+        telemetry_bindings=BINDINGS,
+    ).execute(plan, lifecycle_plan)
+    assert result.state is LabState.SUCCEEDED
+    assert result.artifact is not None
 
 
 def test_tampered_or_context_drift_trial_fails_and_publishes_no_artifact(
@@ -581,3 +618,9 @@ def test_self_consistent_lab_manifest_forges_are_rejected(tmp_path: Path) -> Non
     )
     with pytest.raises(LabOrchestrationError, match="telemetry sample"):
         verify_lab_artifact(forged_telemetry)
+
+    forged_events = deepcopy(result.artifact)
+    forged_events["lifecycle"]["events"] = ["SUCCEEDED"]
+    forged_events["artifact_digest"] = compute_lab_artifact_digest(forged_events)
+    with pytest.raises(LabOrchestrationError, match="cleanup proof"):
+        verify_lab_artifact(forged_events)

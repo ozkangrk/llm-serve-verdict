@@ -35,6 +35,7 @@ from serving_verdict.lab_telemetry import (
 )
 
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+_CONTENT_HASH_RE = re.compile(r"^(?:sha256:)?([0-9a-f]{64})$")
 
 _SCHEMA = "serving-verdict.lab-run.v0.5"
 _RUN_SPEC_KEYS = {
@@ -66,6 +67,17 @@ _TELEMETRY_SAMPLE_KEYS = {
     "labels",
     "status",
 }
+_SUCCESS_EVENTS = [
+    LabState.PLANNED.value,
+    LabState.PULLING.value,
+    LabState.NETWORK_CREATING.value,
+    LabState.STARTING.value,
+    LabState.READY.value,
+    LabState.BENCHMARKING.value,
+    LabState.FINALIZING.value,
+    LabState.STOPPING.value,
+    LabState.SUCCEEDED.value,
+]
 
 
 class LabOrchestrationError(RuntimeError):
@@ -95,19 +107,24 @@ def benchmark_profile_binding_digest(
     if not all(
         isinstance(value, str) and value
         for value in (profile_name, procedure_version)
-    ) or not all(
-        isinstance(value, str) and _DIGEST_RE.fullmatch(value) is not None
-        for value in (protocol_hash, workload_hash)
     ):
         raise LabOrchestrationError("benchmark profile binding is invalid")
+    normalized_hashes: list[str] = []
+    for value in (protocol_hash, workload_hash):
+        if not isinstance(value, str):
+            raise LabOrchestrationError("benchmark profile binding is invalid")
+        matched = _CONTENT_HASH_RE.fullmatch(value)
+        if matched is None:
+            raise LabOrchestrationError("benchmark profile binding is invalid")
+        normalized_hashes.append(matched.group(1))
     return digest_payload(
         canonicalize(
             {
                 "schema_version": "serving-verdict.benchmark-profile-binding.v1",
                 "profile_name": profile_name,
                 "procedure_version": procedure_version,
-                "protocol_hash": protocol_hash,
-                "workload_hash": workload_hash,
+                "protocol_hash": normalized_hashes[0],
+                "workload_hash": normalized_hashes[1],
             }
         )
     )
@@ -122,7 +139,7 @@ class LabOrchestrationResult:
     cleanup_verified: bool
 
 
-def _sample_doc(sample: TelemetrySample) -> dict[str, Any]:
+def telemetry_sample_document(sample: TelemetrySample) -> dict[str, Any]:
     return {
         "offset_s": sample.offset_s,
         "metric_id": sample.metric_id,
@@ -136,7 +153,7 @@ def _sample_doc(sample: TelemetrySample) -> dict[str, Any]:
     }
 
 
-def _failure_doc(failure: TelemetryFailure) -> dict[str, Any]:
+def telemetry_failure_document(failure: TelemetryFailure) -> dict[str, Any]:
     return {"offset_s": failure.offset_s, "status": failure.status}
 
 
@@ -162,7 +179,7 @@ def _percentile(values: list[float], quantile: float) -> float:
     return result
 
 
-def _telemetry_summary(samples: tuple[TelemetrySample, ...]) -> list[dict[str, Any]]:
+def summarize_telemetry(samples: tuple[TelemetrySample, ...]) -> list[dict[str, Any]]:
     groups: dict[
         tuple[str, tuple[tuple[str, str], ...], str, str], list[TelemetrySample]
     ] = {}
@@ -345,12 +362,12 @@ def verify_lab_artifact(document: dict[str, Any]) -> str:
             TelemetryFailure(failure["offset_s"], failure["status"])
         except (TelemetryError, KeyError, TypeError) as exc:
             raise LabOrchestrationError("lab artifact telemetry failure is invalid") from exc
-    if telemetry.get("summary") != _telemetry_summary(tuple(validated_samples)):
+    if telemetry.get("summary") != summarize_telemetry(tuple(validated_samples)):
         raise LabOrchestrationError("lab artifact telemetry summary is invalid")
     if (
         not isinstance(lifecycle, dict)
         or lifecycle.get("terminal_state") != LabState.SUCCEEDED.value
-        or not isinstance(lifecycle.get("events"), list)
+        or lifecycle.get("events") != _SUCCESS_EVENTS
         or not isinstance(cleanup, dict)
         or cleanup != {"verified": True}
     ):
@@ -588,9 +605,9 @@ class LabRunOrchestrator:
             return {
                 "benchmark_trials": trial_refs,
                 "telemetry": {
-                    "samples": [_sample_doc(value) for value in buffer.snapshot()],
-                    "failures": [_failure_doc(value) for value in buffer.failures()],
-                    "summary": _telemetry_summary(buffer.snapshot()),
+                    "samples": [telemetry_sample_document(value) for value in buffer.snapshot()],
+                    "failures": [telemetry_failure_document(value) for value in buffer.failures()],
+                    "summary": summarize_telemetry(buffer.snapshot()),
                 },
             }
 
