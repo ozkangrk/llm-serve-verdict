@@ -13,6 +13,7 @@
   <nav class="topnav" aria-label="Primary">
     <button id="nav-verdicts" class="btn" type="button">Verdicts</button>
     <button id="nav-automation" class="btn" type="button">Benchmark</button>
+    <button id="nav-lab" class="btn" type="button">Inference Lab</button>
   </nav>
 </header>
 
@@ -166,6 +167,92 @@
         <div><strong>Config Advisor</strong><span>Rule-based recommendations and inert rollback recipes</span></div>
         <div><strong>Automated A/B (CLI)</strong><span>Alternating repeated baseline/candidate trials with one sealed decision</span></div>
       </div>
+    </section>
+  </section>
+
+  <!-- ===================== INFERENCE LAB ===================== -->
+  <section id="lab-view" class="hidden" aria-labelledby="lab-heading">
+    <header class="lab-hero">
+      <div>
+        <div class="page-kicker">LOCAL INFERENCE CONTROL PLANE</div>
+        <h1 id="lab-heading">Lab / Live / Decide</h1>
+        <p class="lab-lead">Launch a known runtime, bind repeated evidence, watch bounded
+          telemetry, and decide only after cleanup is verified.</p>
+      </div>
+      <div id="lab-capability-state" class="lab-capability" role="status">Checking capability…</div>
+    </header>
+
+    <nav class="lab-tabs" aria-label="Inference Lab workspace" role="tablist">
+      <button id="lab-tab-configure" class="lab-tab active" type="button" role="tab" aria-controls="lab-configure-pane" aria-selected="true" tabindex="0">Lab</button>
+      <button id="lab-tab-live" class="lab-tab" type="button" role="tab" aria-controls="lab-live-pane" aria-selected="false" tabindex="-1">Live</button>
+      <button id="lab-tab-decide" class="lab-tab" type="button" role="tab" aria-controls="lab-decide-pane" aria-selected="false" tabindex="-1">Decide</button>
+    </nav>
+
+    <section id="lab-disabled-panel" class="lab-disabled hidden" role="note">
+      <strong>Inference Lab is operator-disabled</strong>
+      <span>Start the server with <code>SERVING_VERDICT_ENABLE_LAB=1</code> and a trusted executor. Browser input cannot enable Docker access.</span>
+    </section>
+
+    <div id="lab-shell" class="lab-shell">
+      <section id="lab-configure-pane" class="lab-pane" data-lab-pane="configure" role="tabpanel" aria-labelledby="lab-tab-configure" aria-hidden="false">
+        <form id="lab-form" class="panel lab-config-panel">
+          <div class="lab-section-heading"><span>01</span><div><h2>Configure the candidate</h2><p>Only shipped templates and typed overrides.</p></div></div>
+          <div class="lab-form-grid">
+            <label>Runtime template
+              <select id="lab-template">
+                <option value="vllm.openai">vLLM · OpenAI</option>
+                <option value="sglang.openai">SGLang · OpenAI</option>
+                <option value="llamacpp.server">llama.cpp · Server</option>
+              </select>
+            </label>
+            <label>Model reference
+              <input id="lab-model-ref" value="qwen-fast" autocomplete="off">
+            </label>
+            <label>Max model length
+              <input id="lab-max-model-len" type="number" min="1" max="1048576" value="4096">
+            </label>
+            <label>GPU memory utilization
+              <input id="lab-gpu-memory" type="number" min="0.1" max="1" step="0.05" value="0.8">
+            </label>
+            <label>Repeated trials
+              <input id="lab-trials" type="number" min="2" max="20" value="3">
+            </label>
+            <label>Statistical seed
+              <input id="lab-seed" type="number" min="0" value="17">
+            </label>
+            <label>Telemetry interval · seconds
+              <input id="lab-telemetry-interval" type="number" min="1" max="60" value="2">
+            </label>
+            <label>Maximum telemetry samples
+              <input id="lab-telemetry-max" type="number" min="1" max="3600" value="120">
+            </label>
+          </div>
+          <div class="lab-actions">
+            <button id="lab-start" class="btn primary" type="submit">Start isolated lab run</button>
+            <button id="lab-cancel" class="btn danger hidden" type="button">Request cleanup &amp; cancel</button>
+          </div>
+          <div id="lab-error" class="error hidden" role="alert"></div>
+        </form>
+      </section>
+
+      <aside class="panel lab-run-panel" aria-live="polite">
+        <div class="lab-section-heading"><span>02</span><div><h2>Owned lifecycle</h2><p>Cleanup is part of success.</p></div></div>
+        <div id="lab-job-state" class="lab-job-state">No active run</div>
+        <ol id="lab-progress-timeline" class="lab-timeline"></ol>
+        <div class="lab-cleanup-row"><span>Cleanup proof</span><strong id="lab-cleanup-state">Not available</strong></div>
+      </aside>
+    </div>
+
+    <section id="lab-live-pane" class="lab-pane panel lab-live-panel hidden" data-lab-pane="live" role="tabpanel" aria-labelledby="lab-tab-live" aria-hidden="true">
+      <div class="lab-section-heading"><span>03</span><div><h2>Live telemetry</h2><p>min / mean / p50 / p95 / p99 / max / latest</p></div></div>
+      <div class="lab-live-meta">Snapshot sequence <strong id="lab-live-sequence">0</strong></div>
+      <div id="lab-live-summary" class="lab-stat-grid"></div>
+      <div id="lab-live-failures" class="lab-failures">No scrape failures.</div>
+    </section>
+
+    <section id="lab-decide-pane" class="lab-pane panel lab-decide-panel hidden" data-lab-pane="decide" role="tabpanel" aria-labelledby="lab-tab-decide" aria-hidden="true">
+      <div class="lab-section-heading"><span>04</span><div><h2>Decision evidence</h2><p>Published only after owned resources are absent.</p></div></div>
+      <div id="lab-result" class="lab-result-empty">No promotion-eligible lab artifact yet.</div>
     </section>
   </section>
 </main>

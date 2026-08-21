@@ -29,7 +29,7 @@
   // artifact adapters; operator_attested values are attested by the operator
   // and are never relabeled. Rendered exactly as the bundle carries them.
   var AUTHORITY_KINDS = ["machine_measured", "operator_attested"];
-  var state = { caseId: null, lastError: null, automationJob: null };
+  var state = { caseId: null, lastError: null, automationJob: null, labJob: null };
 
   function $(id) { return document.getElementById(id); }
 
@@ -212,10 +212,12 @@
   function renderIndex() {
     $("nav-verdicts").setAttribute("aria-current", "page");
     $("nav-automation").setAttribute("aria-current", "false");
+    $("nav-lab").setAttribute("aria-current", "false");
     $("index-view").classList.remove("hidden");
     $("detail-view").classList.add("hidden");
     $("error-view").classList.add("hidden");
     $("automation-view").classList.add("hidden");
+    $("lab-view").classList.add("hidden");
     $("list-heading").textContent = "Deployment verdicts";
     state.caseId = null;
     document.title = "LLM ServeVerdict";
@@ -528,6 +530,7 @@
     $("index-view").classList.add("hidden");
     $("error-view").classList.add("hidden");
     $("automation-view").classList.add("hidden");
+    $("lab-view").classList.add("hidden");
     $("detail-view").classList.remove("hidden");
     $("detail-loading").classList.remove("hidden");
     $("detail-body").classList.add("hidden");
@@ -545,9 +548,11 @@
   function showAutomation() {
     $("nav-automation").setAttribute("aria-current", "page");
     $("nav-verdicts").setAttribute("aria-current", "false");
+    $("nav-lab").setAttribute("aria-current", "false");
     $("index-view").classList.add("hidden");
     $("detail-view").classList.add("hidden");
     $("error-view").classList.add("hidden");
+    $("lab-view").classList.add("hidden");
     $("automation-view").classList.remove("hidden");
     document.title = "Automation · LLM ServeVerdict";
     api("/api/v1/automation/capabilities").then(function (caps) {
@@ -620,6 +625,176 @@
     }).then(renderAutomationJob).catch(function () { automationFail("Cancel request failed."); });
   }
 
+  /* --------------------------- Lab / Live / Decide --------------------------- */
+
+  var LAB_ACTIVE = [
+    "PLANNED", "PULLING", "NETWORK_CREATING", "STARTING", "READY",
+    "BENCHMARKING", "FINALIZING", "CANCEL_REQUESTED", "STOPPING"
+  ];
+
+  function selectLabPane(name) {
+    var names = ["configure", "live", "decide"];
+    names.forEach(function (item) {
+      var selected = item === name;
+      $("lab-" + item + "-pane").classList.toggle("hidden", !selected);
+      $("lab-" + item + "-pane").setAttribute("aria-hidden", selected ? "false" : "true");
+      var tabId = item === "configure" ? "lab-tab-configure" : "lab-tab-" + item;
+      $(tabId).classList.toggle("active", selected);
+      $(tabId).setAttribute("aria-selected", selected ? "true" : "false");
+      $(tabId).setAttribute("tabindex", selected ? "0" : "-1");
+    });
+    $("lab-shell").classList.toggle("lab-shell-wide", name !== "configure");
+  }
+
+  function labTabKey(event) {
+    var keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+    if (!event || keys.indexOf(event.key) === -1) return;
+    if (event.preventDefault) event.preventDefault();
+    var tabs = ["configure", "live", "decide"];
+    var current = event.currentTarget && event.currentTarget.id === "lab-tab-live" ? 1
+      : (event.currentTarget && event.currentTarget.id === "lab-tab-decide" ? 2 : 0);
+    var next = event.key === "Home" ? 0 : (event.key === "End" ? 2
+      : (event.key === "ArrowRight" ? (current + 1) % 3 : (current + 2) % 3));
+    selectLabPane(tabs[next]);
+    var target = $("lab-tab-" + (tabs[next] === "configure" ? "configure" : tabs[next]));
+    if (target.focus) target.focus();
+  }
+
+  function showLab() {
+    $("nav-lab").setAttribute("aria-current", "page");
+    $("nav-verdicts").setAttribute("aria-current", "false");
+    $("nav-automation").setAttribute("aria-current", "false");
+    $("index-view").classList.add("hidden");
+    $("detail-view").classList.add("hidden");
+    $("error-view").classList.add("hidden");
+    $("automation-view").classList.add("hidden");
+    $("lab-view").classList.remove("hidden");
+    document.title = "Inference Lab · LLM ServeVerdict";
+    api("/api/v1/lab/capabilities").then(function (caps) {
+      var enabled = caps.enabled === true;
+      $("lab-capability-state").textContent = enabled ? "READY · local executor" : "DISABLED · operator gate";
+      $("lab-capability-state").className = "lab-capability " + (enabled ? "ready" : "disabled");
+      $("lab-disabled-panel").classList.toggle("hidden", enabled);
+      $("lab-start").disabled = !enabled;
+    }).catch(function () {
+      $("lab-capability-state").textContent = "UNAVAILABLE · capability check failed";
+      $("lab-disabled-panel").classList.remove("hidden");
+      $("lab-start").disabled = true;
+    });
+  }
+
+  function labFail(message) {
+    $("lab-error").textContent = message || "Lab request failed.";
+    $("lab-error").classList.remove("hidden");
+  }
+
+  function renderLabTimeline(events) {
+    var timeline = $("lab-progress-timeline");
+    timeline.innerHTML = "";
+    (events || []).forEach(function (name) {
+      timeline.appendChild(el("li", "lab-event", name));
+    });
+  }
+
+  function renderLabLive(live) {
+    $("lab-live-sequence").textContent = String(live.sequence || 0);
+    var grid = $("lab-live-summary");
+    grid.innerHTML = "";
+    (live.summary || []).forEach(function (series) {
+      var card = el("article", "lab-stat-card");
+      card.appendChild(el("h3", "lab-stat-title", series.metric_id || "metric"));
+      var labels = series.labels && series.labels.length ? " · " + JSON.stringify(series.labels) : "";
+      card.appendChild(el("div", "lab-stat-meta", (series.unit || "") + labels));
+      var stats = el("dl", "lab-stat-values");
+      ["min", "mean", "p50", "p95", "p99", "max", "latest"].forEach(function (key) {
+        stats.appendChild(el("dt", "", key));
+        stats.appendChild(el("dd", "mono", sig4(series[key])));
+      });
+      card.appendChild(stats);
+      grid.appendChild(card);
+    });
+    if (!(live.summary || []).length) grid.appendChild(el("div", "lab-result-empty", "Waiting for normalized telemetry."));
+    var failures = live.failures || [];
+    $("lab-live-failures").textContent = failures.length
+      ? failures.length + " bounded scrape failure" + (failures.length === 1 ? "" : "s")
+      : "No scrape failures.";
+  }
+
+  function renderLabJob(job) {
+    state.labJob = job.job_id || state.labJob;
+    $("lab-job-state").textContent = (job.state || "UNKNOWN") + " · " + (job.phase || "—");
+    renderLabTimeline(job.events || []);
+    var active = LAB_ACTIVE.indexOf(job.state) !== -1;
+    $("lab-cancel").classList.toggle("hidden", !active);
+    $("lab-start").disabled = active;
+    $("lab-cleanup-state").textContent = job.cleanup_verified ? "VERIFIED" : (active ? "Pending" : "Not verified");
+    $("lab-cleanup-state").className = job.cleanup_verified ? "ok" : "status-missing";
+    if (job.state === "FAILED") labFail("Lab execution failed. Raw runtime errors and secrets were suppressed.");
+    if (job.state === "CLEANUP_FAILED") labFail("Cleanup could not be verified. No result was published.");
+    if (job.state === "CANCELLED") $("lab-job-state").textContent = "CANCELLED · result discarded after cleanup";
+    if (job.state === "SUCCEEDED" && job.result) {
+      $("lab-result").className = "lab-result-success";
+      $("lab-result").textContent = JSON.stringify({
+        schema_version: job.result.schema_version,
+        artifact_digest: job.result.artifact_digest,
+        cleanup_verified: job.cleanup_verified
+      }, null, 2);
+      selectLabPane("decide");
+    }
+    refreshLabLive();
+    if (active && typeof setTimeout === "function") setTimeout(refreshLabJob, 750);
+  }
+
+  function refreshLabJob() {
+    if (!state.labJob) return;
+    api("/api/v1/lab/jobs/" + encodeURIComponent(state.labJob))
+      .then(renderLabJob)
+      .catch(function () { labFail("Could not refresh Lab status."); });
+  }
+
+  function refreshLabLive() {
+    if (!state.labJob) return;
+    api("/api/v1/lab/jobs/" + encodeURIComponent(state.labJob) + "/live")
+      .then(renderLabLive)
+      .catch(function () { labFail("Could not refresh bounded telemetry snapshot."); });
+  }
+
+  function startLab(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    $("lab-error").classList.add("hidden");
+    var template = $("lab-template").value;
+    var maxLen = Number($("lab-max-model-len").value);
+    var overrides = template === "llamacpp.server"
+      ? {context_size: maxLen}
+      : {gpu_memory_utilization: Number($("lab-gpu-memory").value), max_model_len: maxLen};
+    var body = {
+      schema_version: "serving-verdict.lab-start.v0.5",
+      template_id: template,
+      model_ref: $("lab-model-ref").value,
+      overrides: overrides,
+      trial_count: Number($("lab-trials").value),
+      statistical_seed: Number($("lab-seed").value),
+      telemetry_interval_s: Number($("lab-telemetry-interval").value),
+      telemetry_max_samples: Number($("lab-telemetry-max").value)
+    };
+    $("lab-job-state").textContent = "PLANNED · submitting safe plan";
+    api("/api/v1/lab/jobs", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    }).then(renderLabJob).catch(function (e) {
+      if (e.bodyPromise) e.bodyPromise.then(function (b) { labFail(b.error || "Invalid Lab request."); });
+      else labFail("Lab request failed.");
+    });
+  }
+
+  function cancelLab() {
+    if (!state.labJob) return;
+    api("/api/v1/lab/jobs/" + encodeURIComponent(state.labJob) + "/cancel", {method: "POST"})
+      .then(renderLabJob)
+      .catch(function () { labFail("Cleanup and cancel request failed."); });
+  }
+
   function route() {
     var m = /^#\/([^/]+)/.exec(window.location.hash || "");
     if (m) { showDetail(decodeURIComponent(m[1])); } else { renderIndex(); }
@@ -632,9 +807,18 @@
       renderIndex();
     });
     $("nav-automation").addEventListener("click", showAutomation);
+    $("nav-lab").addEventListener("click", showLab);
     $("auto-start").addEventListener("click", startAutomation);
     $("auto-cancel").addEventListener("click", cancelAutomation);
     $("auto-refresh").addEventListener("click", refreshAutomation);
+    $("lab-form").addEventListener("submit", startLab);
+    $("lab-cancel").addEventListener("click", cancelLab);
+    $("lab-tab-configure").addEventListener("click", function () { selectLabPane("configure"); });
+    $("lab-tab-live").addEventListener("click", function () { selectLabPane("live"); });
+    $("lab-tab-decide").addEventListener("click", function () { selectLabPane("decide"); });
+    $("lab-tab-configure").addEventListener("keydown", labTabKey);
+    $("lab-tab-live").addEventListener("keydown", labTabKey);
+    $("lab-tab-decide").addEventListener("keydown", labTabKey);
     $("back-btn").addEventListener("click", function () {
       window.location.hash = "";
       renderIndex();
