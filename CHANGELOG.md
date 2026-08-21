@@ -34,6 +34,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Active v0.5 product development is paused at the product-validation gate. The
+  only approved continuation target is a real single-GPU bracketed sequential
+  experiment with mandatory incumbent restoration; broad UI/platform expansion
+  is explicitly out of scope until that gate passes.
 - README scenario actor is now Alex and the landing page includes measured test
   results plus the end-to-end A/B automation command.
 

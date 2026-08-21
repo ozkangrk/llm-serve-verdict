@@ -17,6 +17,14 @@ No LLM opinion in the verdict path. No silent metric conversion. No promotion fr
 
 </div>
 
+> [!IMPORTANT]
+> **Development status (2026-08-21): paused at the product-validation gate.**
+> Existing benchmark, evidence, comparison and verdict workflows remain usable.
+> The experimental v0.5 Lab/UI foundations are not a complete single-GPU
+> inference platform and must not be marketed as one. Development should resume
+> only around a proven sequential A-pre → candidate B → restored A-post workflow
+> with mandatory rollback. See [Project status and continuation target](docs/PROJECT_STATUS.md).
+
 ## In plain English
 
 You changed the software or configuration that serves an LLM. The new setup
@@ -321,6 +329,7 @@ matrix; local numbers above are updated only from a real exact-tree run.
 
 | Document | Purpose |
 |---|---|
+| [Project status and continuation target](docs/PROJECT_STATUS.md) | Pause decision, honest boundary, sequential single-GPU resume gate |
 | [Automated A/B experiments](docs/AB_EXPERIMENT.md) | Repeated endpoint orchestration, artifacts and decision order |
 | [Docker Lab backend](docs/DOCKER_LAB_BACKEND.md) | Opt-in execution capability, hardening and current dogfood boundary |
 | [Lab run orchestration](docs/LAB_ORCHESTRATION.md) | Repeated trials, live telemetry and cleanup-gated evidence |
